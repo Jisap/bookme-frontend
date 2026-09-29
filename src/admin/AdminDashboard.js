@@ -13,8 +13,7 @@ import {
   UserCheck,
   ShieldCheck,
   CalendarCheck,
-  X,
-  CreditCard
+  X
 } from "lucide-react";
 import logo from "../assets/logo.png";
 import { adminDashboardPageStyles as s } from "../assets/dummyStyles";
@@ -333,7 +332,6 @@ const AdminDashboardPage = () => {
             <div className={s.withdrawalList}>
               {(dashboard?.withdrawals || []).map((withdrawal) => {
                 const isWithdrawalLocked = isTerminalWithdrawalStatus(withdrawal.status);
-                const payoutInfo = withdrawal.payoutSnapshot || withdrawal.userId?.payoutDetails;
 
                 return (
                   <div key={withdrawal._id} className={s.withdrawalItem}>
@@ -363,23 +361,24 @@ const AdminDashboardPage = () => {
                       </div>
                     </div>
 
-                    {/* Información de la cuenta de destino del pago */}
-                    {payoutInfo && (
-                      <div className={s.withdrawalAccountInfo}>
-                        <Landmark className={s.withdrawalAccountIcon} />
-                        <span className="truncate">
-                          {payoutInfo.bankName ? `${payoutInfo.bankName} •••• ${payoutInfo.accountLast4 || ''}` : ''}
-                          {payoutInfo.upiId ? `UPI: ${payoutInfo.upiId}` : ''}
-                          {payoutInfo.accountHolderName ? ` (${payoutInfo.accountHolderName})` : ''}
-                        </span>
-                      </div>
-                    )}
+                    {/* Información de la cuenta de destino del pago (Snapshot) */}
+                    <div className={s.withdrawalAccountInfo}>
+                      <Landmark className={s.withdrawalAccountIcon} />
+                      <span>
+                        {withdrawal.payoutSnapshot?.bankName || withdrawal.payoutSnapshot?.bankname || "UPI Connection"}{" "}•{" "}
+                        {withdrawal.payoutSnapshot?.accountLast4
+                          ? `•••• ${withdrawal.payoutSnapshot?.accountLast4}`
+                          : withdrawal.payoutSnapshot?.upiId || "No details"
+                        }
+                      </span>
+                    </div>
 
                     {/* Botones de acción para cambiar de estado */}
                     <div className={s.withdrawalActions}>
                       {withdrawalStatuses.map((statusOption) => {
                         const isActive = withdrawal.status === statusOption;
-                        const isDisabled = isWithdrawalLocked || isActive;
+                        const isUpdatingThisWithdrawal = updatingWithdrawalId === withdrawal._id;
+                        const isDisabled = isWithdrawalLocked || isActive || Boolean(updatingWithdrawalId);
 
                         return (
                           <button
@@ -387,13 +386,14 @@ const AdminDashboardPage = () => {
                             type="button"
                             disabled={isDisabled}
                             onClick={() => requestWithdrawalStatusChange(withdrawal, statusOption)}
-                            className={`${s.withdrawalActionBtn} ${
-                              isActive
-                                ? s.withdrawalActionBtnActive
-                                : s.withdrawalActionBtnInactive
-                            }`}
+                            className={`${s.withdrawalActionBtn} ${isActive
+                              ? s.withdrawalActionBtnActive
+                              : s.withdrawalActionBtnInactive
+                              }`}
                           >
-                            {formatStatusLabel(statusOption)}
+                            {isUpdatingThisWithdrawal && pendingWithdrawalAction?.status === statusOption
+                              ? "Updating..."
+                              : formatStatusLabel(statusOption)}
                           </button>
                         );
                       })}
@@ -494,9 +494,9 @@ const AdminDashboardPage = () => {
               {pendingWithdrawalAction.status === "rejected"
                 ? "Rejecting this withdrawal will automatically reverse the hold and restore the funds back into the provider's wallet."
                 : `Are you sure you want to mark this withdrawal of ${formatMoney(
-                    pendingWithdrawal?.amount,
-                    pendingWithdrawal?.currency
-                  )} as "${formatStatusLabel(pendingWithdrawalAction.status)}"?`}
+                  pendingWithdrawal?.amount,
+                  pendingWithdrawal?.currency
+                )} as "${formatStatusLabel(pendingWithdrawalAction.status)}"?`}
             </p>
 
             <div className={s.confirmModalMeta}>
