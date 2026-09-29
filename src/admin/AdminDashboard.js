@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { getAdminDashboard, updateWithdrawalStatus } from "../api/admin";
+import { getAdminDashboard, updateWithdrawalStatus, adminLogout } from "../api/admin";
 import {
   Users,
   Wallet,
@@ -11,36 +11,61 @@ import {
   XOctagon,
   Clock,
   UserCheck,
-  ShieldCheck
-} from "lucide-react"
-import logo from "../assets/logo.png"
+  ShieldCheck,
+  CalendarCheck,
+  X,
+  CreditCard
+} from "lucide-react";
+import logo from "../assets/logo.png";
 import { adminDashboardPageStyles as s } from "../assets/dummyStyles";
 
-
+/**
+ * Formatea un valor numérico expresado en céntimos (minor units) a moneda con formato local.
+ * 
+ * @param {number} amount - Monto en céntimos (ej. 50000 = 500.00).
+ * @param {string} [currency="INR"] - Código ISO de moneda.
+ * @returns {string} Cadena formateada (ej. "₹500.00").
+ */
 const formatMoney = (amount = 0, currency = "INR") =>
-  new Intl.NumberFormat("en-IN", { styles: "currency", currency }).format( //dividir entre 100 ya que esta en centimos de rupia
-    amount / 100
+  new Intl.NumberFormat("en-IN", { style: "currency", currency }).format(
+    (amount || 0) / 100
   );
 
-const withdrawalStatuses = ["processing", "paid", "rejected"];//estados para los botones de actualizar
-const terminalWithdrawalStatuses = ["paid", "rejected"];//estados para los botones que indican que la solicitud ha terminado
+// Lista de posibles estados a los que se puede transicionar una solicitud de retiro
+const withdrawalStatuses = ["processing", "paid", "rejected"];
 
+// Estados terminales o finales: una vez alcanzados, la solicitud no puede modificarse más
+const terminalWithdrawalStatuses = ["paid", "rejected"];
+
+/**
+ * Determina si el estado de un retiro ya es terminal/definitivo.
+ * @param {string} status - Estado de la solicitud.
+ * @returns {boolean}
+ */
 const isTerminalWithdrawalStatus = (status) =>
-  terminalWithdrawalStatuses.includes(status);//verificar si el estado es terminal
+  terminalWithdrawalStatuses.includes(status);
 
+/**
+ * Convierte un texto a formato Capitalizado (primera letra mayúscula).
+ * @param {string} status - Texto a formatear.
+ * @returns {string}
+ */
 const formatStatusLabel = (status = "") =>
-  status ? `${status.slice(0, 1).toUpperCase()}${status.slice(1)}` : "";  //formatar el estado para que se muestre con la primera letra mayuscula
+  status ? `${status.slice(0, 1).toUpperCase()}${status.slice(1)}` : "";
 
-
-
+/**
+ * Componente principal del Panel de Control de Administración (Admin Dashboard).
+ * Permite visualizar métricas globales, listado de usuarios, solicitudes de retiros
+ * con confirmación modal y las reservas pagadas más recientes.
+ */
 const AdminDashboardPage = () => {
-
   const navigate = useNavigate();
   const [dashboard, setDashboard] = useState(null);
   const [message, setMessage] = useState("");
   const [updatingWithdrawalId, setUpdatingWithdrawalId] = useState("");
   const [pendingWithdrawalAction, setPendingWithdrawalAction] = useState(null);
 
+  // Efecto para validar autenticación y cargar datos iniciales del panel
   useEffect(() => {
     if (!localStorage.getItem("adminToken")) {
       navigate("/admin/login");
@@ -52,34 +77,44 @@ const AdminDashboardPage = () => {
     getAdminDashboard()
       .then((response) => {
         if (isActive) {
-          setDashboard(response.data)
+          setDashboard(response.data);
         }
       })
       .catch((error) => {
         if (isActive) {
           setDashboard(null);
-          setMessage(error.response?.data?.message || "Error while fetching dashboard");
+          setMessage(error.response?.data?.message || "Error al cargar la información del panel.");
         }
       });
 
     return () => {
       isActive = false;
-    }
+    };
   }, [navigate]);
 
+  /**
+   * Abre el modal de confirmación para cambiar el estado de un retiro.
+   * @param {Object} withdrawal - Objeto con la información del retiro.
+   * @param {'processing' | 'paid' | 'rejected'} status - Nuevo estado solicitado.
+   */
   const requestWithdrawalStatusChange = (withdrawal, status) => {
     if (withdrawal.status === status || isTerminalWithdrawalStatus(withdrawal.status)) {
-      return
+      return;
     }
+    setPendingWithdrawalAction({ withdrawal, status });
+  };
 
-    setPendingWithdrawalAction({ withdrawal, status })
-  }
-
+  /**
+   * Cierra el modal de confirmación si no hay una actualización en curso.
+   */
   const closeWithdrawalConfirm = () => {
     if (updatingWithdrawalId) return;
-    setPendingWithdrawalAction(null)
-  }
+    setPendingWithdrawalAction(null);
+  };
 
+  /**
+   * Ejecuta la petición al backend para actualizar el estado del retiro.
+   */
   const changeWithdrawalStatus = async () => {
     if (!pendingWithdrawalAction) return;
 
@@ -94,17 +129,15 @@ const AdminDashboardPage = () => {
         return {
           ...prev,
           summary: data.summary || prev.summary,
-          withdrawals: prev.withdrawals.map((withdrawal) =>
-            withdrawal._id === data.withdrawal._id
-              ? data.withdrawal
-              : withdrawal,
+          withdrawals: prev.withdrawals.map((item) =>
+            item._id === data.withdrawal._id ? data.withdrawal : item
           ),
         };
       });
-      setMessage(data.message || `Withdrawal marked as ${status}`);
+      setMessage(data.message || `Retiro marcado como ${formatStatusLabel(status)}`);
     } catch (error) {
       setMessage(
-        error.response?.data?.message || "Could not update withdrawal",
+        error.response?.data?.message || "No se pudo actualizar el estado del retiro"
       );
     } finally {
       setUpdatingWithdrawalId("");
@@ -112,25 +145,29 @@ const AdminDashboardPage = () => {
     }
   };
 
+  /**
+   * Cierra la sesión de administración y redirige al inicio de sesión.
+   */
   const logout = () => {
-    localStorage.removeItem("adminToken");
+    adminLogout();
     navigate("/admin/login");
   };
 
   const summary = dashboard?.summary || {};
   const pendingWithdrawal = pendingWithdrawalAction?.withdrawal;
+  const isConfirmingWithdrawal =
+    Boolean(pendingWithdrawal && updatingWithdrawalId === pendingWithdrawal._id);
   const WithdrawalConfirmIcon =
     pendingWithdrawalAction?.status === "rejected" ? XOctagon : ShieldCheck;
-  const isConfirmingWithdrawal =
-    pendingWithdrawal && updatingWithdrawalId === pendingWithdrawal._id;
 
-  // Helpers for dynamic classes from styles
+  // Clases dinámicas basadas en los estilos del tema
   const getPayoutStatusClass = (isComplete) =>
     isComplete ? s.userPayoutReady : s.userPayoutPending;
 
   const getWithdrawalStatusClass = (status) =>
-    s.withdrawalStatusColors[status] || s.withdrawalStatusDefault;
+    s.withdrawalStatusColors?.[status] || s.withdrawalStatusDefault;
 
+  // Configuración de tarjetas métricas (KPIs)
   const statCards = [
     {
       label: "Total Users",
@@ -168,7 +205,7 @@ const AdminDashboardPage = () => {
       c: s.statColor5,
     },
     {
-      label: "Withdrawal Hold",
+      label: "Withdrawal Holds",
       value: formatMoney(summary.withdrawalHolds),
       icon: Landmark,
       bg: s.statBg6,
@@ -178,19 +215,20 @@ const AdminDashboardPage = () => {
 
   return (
     <div className={s.pageContainer}>
+      {/* Barra de navegación superior (Header) */}
       <header className={s.header}>
         <div className={s.headerInner}>
           <div className={s.logoRow}>
-            <img
-              src={logo}
-              alt="BookMe Logo"
-              className={s.logoImg}
-            />
+            <img src={logo} alt="BookMe Logo" className={s.logoImg} />
+            <span className={s.logoText}>
+              Book<span className={s.logoAccent}>Me</span> Admin
+            </span>
+          </div>
 
-            <Link to="/admin/dashboard" className={s.headerActions}>
+          <div className={s.headerActions}>
+            <Link to="/" className={s.clientAppLink}>
               Client App
             </Link>
-
             <button type="button" onClick={logout} className={s.logoutButton}>
               Logout
             </button>
@@ -198,42 +236,297 @@ const AdminDashboardPage = () => {
         </div>
       </header>
 
+      {/* Contenido principal del dashboard */}
       <main className={s.main}>
-        <section>
+        {/* Sección Hero con títulos y banners de mensaje */}
+        <section className={s.heroSection}>
           <div>
-            <h1></h1>
-            <p></p>
+            <h1 className={s.heroTitle}>
+              Admin <span className={s.heroTitleAccent}>Dashboard</span>
+            </h1>
+            <p className={s.heroSubtitle}>
+              Platform metrics, user activity, and withdrawal management.
+            </p>
           </div>
 
           {message && <div className={s.messageBanner}>{message}</div>}
         </section>
 
+        {/* Cuadrícula de Tarjetas Métricas (KPIs) */}
         <section className={s.statsGrid}>
-          {statCards.map((stat, i) => {
+          {statCards.map((stat, i) => (
             <div key={i} className={s.statCard}>
               <div className={`${s.statIconContainer} ${stat.bg} ${stat.c}`}>
                 <stat.icon className={s.statIcon} />
               </div>
-
               <div>
-                <p className={s.statLabel}>
-                  {stat.label}
-                </p>
-
-                <p className={s.statValue}>
-                  {stat.value}
-                </p>
+                <p className={s.statLabel}>{stat.label}</p>
+                <p className={s.statValue}>{stat.value}</p>
               </div>
             </div>
-          })}
+          ))}
         </section>
 
-        <section>
+        {/* Sección de Tablas: Usuarios Registrados y Solicitudes de Retiro */}
+        <section className={s.tablesGrid}>
+          {/* Tabla de Usuarios Registrados */}
+          <div className={s.tableCard}>
+            <div className={s.tableHeader}>
+              <h2 className={s.tableTitle}>
+                <UserCheck className={s.tableTitleIcon} /> Registered Providers
+              </h2>
+            </div>
 
+            <div className={s.tableScrollContainer}>
+              <table className={s.table}>
+                <thead>
+                  <tr className={s.tableHeadRow}>
+                    <th className={s.th}>Business</th>
+                    <th className={s.th}>Email</th>
+                    <th className={s.th}>Booking Link</th>
+                    <th className={s.th}>Status</th>
+                  </tr>
+                </thead>
+
+                <tbody className={s.tbody}>
+                  {(dashboard?.users || []).map((user) => (
+                    <tr key={user._id} className={s.tr}>
+                      <td className={s.td}>
+                        <div className={s.userBusinessName}>
+                          {user.businessName || user.name}
+                        </div>
+                      </td>
+                      <td className={s.tdMuted}>{user.email}</td>
+                      <td className={s.tdMuted}>{user.slug}</td>
+                      <td className={s.td}>
+                        <span
+                          className={`${s.payoutStatusBadge} ${getPayoutStatusClass(
+                            user.payoutDetails?.isComplete
+                          )}`}
+                        >
+                          {user.payoutDetails?.isComplete ? "Ready" : "Pending Details"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+
+                  {dashboard && dashboard.users?.length === 0 && (
+                    <tr>
+                      <td colSpan="4" className={s.emptyTableCell}>
+                        No registered providers found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Tarjeta de Solicitudes de Retiro de Fondos */}
+          <div className={s.withdrawalCard}>
+            <div className={s.tableHeader}>
+              <h2 className={s.tableTitle}>
+                <Clock className={s.tableTitleIcon} /> Withdrawal Requests
+              </h2>
+            </div>
+
+            <div className={s.withdrawalList}>
+              {(dashboard?.withdrawals || []).map((withdrawal) => {
+                const isWithdrawalLocked = isTerminalWithdrawalStatus(withdrawal.status);
+                const payoutInfo = withdrawal.payoutSnapshot || withdrawal.userId?.payoutDetails;
+
+                return (
+                  <div key={withdrawal._id} className={s.withdrawalItem}>
+                    <div className={s.withdrawalItemHeader}>
+                      <div>
+                        <p className={s.withdrawalProviderName}>
+                          {withdrawal.userId?.businessName || withdrawal.userId?.name || "Provider"}
+                        </p>
+                        <p className={s.withdrawalProviderEmail}>
+                          {withdrawal.userId?.email || "No email available"}
+                        </p>
+                      </div>
+
+                      <div className={s.withdrawalAmountCol}>
+                        <span className={s.withdrawalAmount}>
+                          {formatMoney(withdrawal.amount, withdrawal.currency)}
+                        </span>
+                        <div className={s.withdrawalStatusWrap}>
+                          <span
+                            className={`${s.withdrawalStatusBadge} ${getWithdrawalStatusClass(
+                              withdrawal.status
+                            )}`}
+                          >
+                            {withdrawal.status}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Información de la cuenta de destino del pago */}
+                    {payoutInfo && (
+                      <div className={s.withdrawalAccountInfo}>
+                        <Landmark className={s.withdrawalAccountIcon} />
+                        <span className="truncate">
+                          {payoutInfo.bankName ? `${payoutInfo.bankName} •••• ${payoutInfo.accountLast4 || ''}` : ''}
+                          {payoutInfo.upiId ? `UPI: ${payoutInfo.upiId}` : ''}
+                          {payoutInfo.accountHolderName ? ` (${payoutInfo.accountHolderName})` : ''}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Botones de acción para cambiar de estado */}
+                    <div className={s.withdrawalActions}>
+                      {withdrawalStatuses.map((statusOption) => {
+                        const isActive = withdrawal.status === statusOption;
+                        const isDisabled = isWithdrawalLocked || isActive;
+
+                        return (
+                          <button
+                            key={statusOption}
+                            type="button"
+                            disabled={isDisabled}
+                            onClick={() => requestWithdrawalStatusChange(withdrawal, statusOption)}
+                            className={`${s.withdrawalActionBtn} ${
+                              isActive
+                                ? s.withdrawalActionBtnActive
+                                : s.withdrawalActionBtnInactive
+                            }`}
+                          >
+                            {formatStatusLabel(statusOption)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {dashboard && (!dashboard.withdrawals || dashboard.withdrawals.length === 0) && (
+                <div className={s.emptyWithdrawals}>
+                  <div className={s.emptyWithdrawalsIconCircle}>
+                    <Clock className={s.emptyWithdrawalsIcon} />
+                  </div>
+                  <p className={s.emptyWithdrawalsText}>No withdrawal requests at this moment.</p>
+                </div>
+              )}
+            </div>
+          </div>
         </section>
+
+        {/* Sección de Reservas Pagadas Recientes */}
+        {dashboard?.recentBookings && dashboard.recentBookings.length > 0 && (
+          <section className={s.recentBookingsCard}>
+            <div className={s.tableHeader}>
+              <h2 className={s.tableTitle}>
+                <CalendarCheck className={s.tableTitleIcon} /> Recent Paid Bookings
+              </h2>
+            </div>
+
+            <div className={s.tableScrollContainer}>
+              <table className={s.table}>
+                <thead>
+                  <tr className={s.tableHeadRow}>
+                    <th className={s.th}>Customer</th>
+                    <th className={s.th}>Provider</th>
+                    <th className={s.th}>Service</th>
+                    <th className={s.th}>Date & Time</th>
+                    <th className={s.th}>Total Paid</th>
+                    <th className={s.th}>Platform Fee</th>
+                    <th className={s.th}>Provider Net</th>
+                  </tr>
+                </thead>
+                <tbody className={s.tbody}>
+                  {dashboard.recentBookings.map((booking) => (
+                    <tr key={booking._id} className={s.tr}>
+                      <td className={s.td}>
+                        <div className="font-bold text-slate-900 text-[13px]">
+                          {booking.customerName}
+                        </div>
+                        <div className="text-[12px] text-slate-500">{booking.customerEmail}</div>
+                      </td>
+                      <td className={s.tdMuted}>
+                        {booking.userId?.businessName || booking.userId?.name || "Provider"}
+                      </td>
+                      <td className={s.tdBold}>{booking.serviceId?.name || "Service"}</td>
+                      <td className={s.tdMuted}>
+                        {booking.date} · {booking.startTime} - {booking.endTime}
+                      </td>
+                      <td className={s.tdBold}>{formatMoney(booking.amount, booking.currency)}</td>
+                      <td className={s.tdFees}>
+                        {formatMoney(booking.platformFeeAmount, booking.currency)}
+                      </td>
+                      <td className={s.tdEarnings}>
+                        {formatMoney(booking.providerPayoutAmount, booking.currency)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
       </main>
-    </div>
-  )
-}
 
-export default AdminDashboardPage
+      {/* Modal de Confirmación para Cambio de Estado de Retiro */}
+      {pendingWithdrawalAction && (
+        <div className={s.confirmModalOverlay} onClick={closeWithdrawalConfirm}>
+          <div className={s.confirmModal} onClick={(e) => e.stopPropagation()}>
+            <div className={s.confirmModalIconRow}>
+              <div className={s.confirmModalIconWrap}>
+                <WithdrawalConfirmIcon className={s.confirmModalIcon} />
+              </div>
+              <button
+                type="button"
+                onClick={closeWithdrawalConfirm}
+                disabled={isConfirmingWithdrawal}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <h3 className={s.confirmModalTitle}>
+              Confirm {formatStatusLabel(pendingWithdrawalAction.status)}
+            </h3>
+
+            <p className={s.confirmModalText}>
+              {pendingWithdrawalAction.status === "rejected"
+                ? "Rejecting this withdrawal will automatically reverse the hold and restore the funds back into the provider's wallet."
+                : `Are you sure you want to mark this withdrawal of ${formatMoney(
+                    pendingWithdrawal?.amount,
+                    pendingWithdrawal?.currency
+                  )} as "${formatStatusLabel(pendingWithdrawalAction.status)}"?`}
+            </p>
+
+            <div className={s.confirmModalMeta}>
+              <span>Provider: {pendingWithdrawal?.userId?.businessName || pendingWithdrawal?.userId?.name}</span>
+              <span>{formatMoney(pendingWithdrawal?.amount, pendingWithdrawal?.currency)}</span>
+            </div>
+
+            <div className={s.confirmModalActions}>
+              <button
+                type="button"
+                disabled={isConfirmingWithdrawal}
+                onClick={closeWithdrawalConfirm}
+                className={s.confirmModalCancelBtn}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isConfirmingWithdrawal}
+                onClick={changeWithdrawalStatus}
+                className={s.confirmModalConfirmBtn}
+              >
+                {isConfirmingWithdrawal ? "Updating..." : `Yes, Mark as ${formatStatusLabel(pendingWithdrawalAction.status)}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AdminDashboardPage;
