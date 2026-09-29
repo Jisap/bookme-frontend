@@ -1267,8 +1267,10 @@ export const adminDashboardPageStyles = {
   heroTitleAccent:
     'bg-gradient-to-b from-[#FFA1CF] via-[#FF5C9D] to-[#E11D48] bg-clip-text text-transparent custom-brand-font text-[34px] sm:text-[36px] md:text-[44px] relative top-1 ml-1 md:ml-2',
   heroSubtitle: 'mt-1.5 text-[15px] font-medium text-slate-500',
-  messageBanner:
+  messageBannerSuccess:
     'w-full rounded-[14px] border border-emerald-100 bg-emerald-50 px-4 py-3 text-[13px] font-bold text-emerald-700 shadow-sm md:w-auto',
+  messageBannerError:
+    'w-full rounded-[14px] border border-rose-100 bg-rose-50 px-4 py-3 text-[13px] font-bold text-rose-700 shadow-sm md:w-auto',
 
   // Stats
   statsGrid:
@@ -1368,6 +1370,8 @@ export const adminDashboardPageStyles = {
   confirmModalIconWrap:
     'flex h-11 w-11 items-center justify-center rounded-[14px] bg-[#F4F0FF] text-[#7D57F5]',
   confirmModalIcon: 'h-5 w-5',
+  confirmModalCloseBtn:
+    'text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg',
   confirmModalTitle: 'mt-5 text-[20px] font-extrabold text-slate-900',
   confirmModalText: 'mt-2 text-[14px] font-medium leading-6 text-slate-500',
   confirmModalMeta:
@@ -1389,6 +1393,20 @@ export const adminDashboardPageStyles = {
   // Recent bookings
   recentBookingsCard:
     'mt-6 lg:mt-8 min-w-0 rounded-[18px] sm:rounded-[24px] border border-slate-100 bg-white p-4 sm:p-6 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.04)]',
+  customerName: 'font-bold text-slate-900 text-[13px]',
+  customerEmail: 'text-[12px] text-slate-500',
   bookingPayoutBadge:
     'inline-flex px-2 py-1 rounded-[6px] text-[10px] font-bold bg-[#eafbef] text-[#16a34a] uppercase tracking-wider',
+  bookingStatusBadge:
+    'inline-flex px-2.5 py-1 rounded-[6px] text-[11px] font-bold uppercase tracking-wider',
+  bookingStatusColors: {
+    confirmed: 'bg-[#eafbef] text-[#16a34a]',
+    pending: 'bg-[#ffedd5] text-[#ea580c]',
+    pending_payment: 'bg-[#f3e8ff] text-[#7c3aed]',
+    cancelled: 'bg-[#fff1f2] text-[#e11d48]',
+    payment_failed: 'bg-[#fef2f2] text-[#dc2626]',
+  },
+  bookingStatusDefault: 'bg-slate-100 text-slate-600',
 };
+
+
