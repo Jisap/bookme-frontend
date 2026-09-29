@@ -6,7 +6,7 @@ import axios from "axios";
  * o usando el puerto local del backend (http://localhost:5000/api) como respaldo.
  */
 const client = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api"
 });
 
 /**
@@ -16,14 +16,14 @@ const client = axios.create({
  * lo añade a las cabeceras HTTP como 'Bearer token'.
  */
 client.interceptors.request.use((config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 }, (error) => {
-    // Manejo de errores antes de enviar la solicitud
-    return Promise.reject(error);
+  // Manejo de errores antes de enviar la solicitud
+  return Promise.reject(error);
 });
 
 /**
@@ -35,11 +35,11 @@ client.interceptors.request.use((config) => {
  * @returns {import('axios').AxiosResponse} La respuesta original sin modificar.
  */
 const persistTokenFromResponse = (response) => {
-    const token = response.data?.token;
-    if (token) {
-        localStorage.setItem("token", token);
-    }
-    return response;
+  const token = response.data?.token;
+  if (token) {
+    localStorage.setItem("token", token);
+  }
+  return response;
 };
 
 /**
@@ -50,17 +50,17 @@ const persistTokenFromResponse = (response) => {
  *    en localStorage y redirige automáticamente al usuario a la página de login.
  */
 client.interceptors.response.use(
-    persistTokenFromResponse,
-    (error) => {
-        // Si el servidor responde con 401 (No autorizado / sesión expirada)
-        if (error.response?.status === 401 && localStorage.getItem("token")) {
-            localStorage.removeItem("token");
-            window.location.assign("/login");
-        }
-        
-        // Rechazamos la promesa para que el componente que hizo la llamada pueda capturar el error
-        return Promise.reject(error);
+  persistTokenFromResponse,
+  (error) => {
+    // Si el servidor responde con 401 (No autorizado / sesión expirada)
+    if (error.response?.status === 401 && localStorage.getItem("token")) {
+      localStorage.removeItem("token");
+      window.location.assign("/login");
     }
+
+    // Rechazamos la promesa para que el componente que hizo la llamada pueda capturar el error
+    return Promise.reject(error);
+  }
 );
 
 export default client;
