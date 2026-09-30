@@ -177,7 +177,7 @@ const AdminDashboardPage = () => {
         // Si no viene data.withdrawal, recargar el dashboard completo
         getAdminDashboard()
           .then((res) => setDashboard(res.data))
-          .catch(() => {});
+          .catch(() => { });
       }
 
       setMessage({
@@ -275,7 +275,12 @@ const AdminDashboardPage = () => {
       <header className={s.header}>
         <div className={s.headerInner}>
           <div className={s.logoRow}>
-            <img src={logo} alt="BookMe Logo" className={s.logoImg} />
+            <img
+              src={logo}
+              alt="BookMe Logo"
+              className={s.logoImg}
+            />
+
             <span className={s.logoText}>
               Book<span className={s.logoAccent}>Me</span> Admin
             </span>
@@ -285,6 +290,7 @@ const AdminDashboardPage = () => {
             <Link to="/" className={s.clientAppLink}>
               Client App
             </Link>
+
             <button type="button" onClick={logout} className={s.logoutButton}>
               Logout
             </button>
@@ -300,6 +306,7 @@ const AdminDashboardPage = () => {
             <h1 className={s.heroTitle}>
               Admin <span className={s.heroTitleAccent}>Dashboard</span>
             </h1>
+
             <p className={s.heroSubtitle}>
               Platform metrics, user activity, and withdrawal management.
             </p>
@@ -323,6 +330,7 @@ const AdminDashboardPage = () => {
               <div className={`${s.statIconContainer} ${stat.bg} ${stat.c}`}>
                 <stat.icon className={s.statIcon} />
               </div>
+
               <div>
                 <p className={s.statLabel}>{stat.label}</p>
                 <p className={s.statValue}>{stat.value}</p>
@@ -406,6 +414,7 @@ const AdminDashboardPage = () => {
                         <p className={s.withdrawalProviderName}>
                           {withdrawal.userId?.businessName || withdrawal.userId?.name || "Provider"}
                         </p>
+
                         <p className={s.withdrawalProviderEmail}>
                           {withdrawal.userId?.email || "No email available"}
                         </p>
@@ -415,6 +424,7 @@ const AdminDashboardPage = () => {
                         <span className={s.withdrawalAmount}>
                           {formatMoney(withdrawal.amount, withdrawal.currency)}
                         </span>
+
                         <div className={s.withdrawalStatusWrap}>
                           <span
                             className={`${s.withdrawalStatusBadge} ${getWithdrawalStatusClass(
@@ -480,9 +490,8 @@ const AdminDashboardPage = () => {
           </div>
         </section>
 
-        {/* Sección de Reservas Pagadas Recientes */}
-        {dashboard?.recentBookings && dashboard.recentBookings.length > 0 && (
-          <section className={s.recentBookingsCard}>
+        {/* Sección de Reservas Pagadas Recientes - siempre visible, incluso sin registros */}
+        <section className={s.recentBookingsCard}>
             <div className={s.tableHeader}>
               <h2 className={s.tableTitle}>
                 <CalendarCheck className={s.tableTitleIcon} /> Recent Paid Bookings
@@ -504,7 +513,7 @@ const AdminDashboardPage = () => {
                   </tr>
                 </thead>
                 <tbody className={s.tbody}>
-                  {dashboard.recentBookings.map((booking) => (
+                  {(dashboard?.recentBookings || []).map((booking) => (
                     <tr key={booking._id} className={s.tr}>
                       <td className={s.td}>
                         <div className={s.customerName}>
@@ -537,11 +546,18 @@ const AdminDashboardPage = () => {
                       </td>
                     </tr>
                   ))}
+
+                  {dashboard && (!dashboard.recentBookings || dashboard.recentBookings.length === 0) && (
+                    <tr>
+                      <td colSpan="8" className={s.emptyTableCell}>
+                        No paid bookings found.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
-          </section>
-        )}
+        </section>
       </main>
 
       {/* Modal de Confirmación para Cambio de Estado de Retiro */}
