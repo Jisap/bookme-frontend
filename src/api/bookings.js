@@ -26,4 +26,4 @@ export const updateBookingStatus = (id, status) => client.patch(`/bookings/${id}
  * @param {Object} data - Nueva fecha y franja horaria.
  * @returns {Promise<import('axios').AxiosResponse>} Reserva reprogramada.
  */
-export const rescheduleBooking = (id, data) => client.patch(`/bookings/${id}/reschedule`, { data })
+export const rescheduleBooking = (id, data) => client.patch(`/bookings/${id}/reschedule`, data);
