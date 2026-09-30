@@ -5,7 +5,7 @@ import {
   Users,
   Wallet,
   TrendingUp,
-  IndianRupee,
+  DollarSign,
   Landmark,
   CheckCircle,
   XOctagon,
@@ -23,10 +23,10 @@ import { adminDashboardPageStyles as s } from "../assets/dummyStyles";
  * 
  * @param {number} amount - Monto en céntimos (ej. 50000 = 500.00).
  * @param {string} [currency] - Código ISO de moneda.
- * @returns {string} Cadena formateada (ej. "₹500.00").
+ * @returns {string} Cadena formateada (ej. "$500.00").
  */
 const formatMoney = (amount = 0, currency) =>
-  new Intl.NumberFormat("en-IN", { style: "currency", currency: currency || "INR" }).format(
+  new Intl.NumberFormat("en-US", { style: "currency", currency: currency || "USD" }).format(
     (amount || 0) / 100
   );
 
@@ -206,7 +206,7 @@ const AdminDashboardPage = () => {
   };
 
   const summary = dashboard?.summary || {};
-  const dashboardCurrency = summary.currency || "INR";
+  const dashboardCurrency = summary.currency || "USD";
   const pendingWithdrawal = pendingWithdrawalAction?.withdrawal;
   const isConfirmingWithdrawal =
     Boolean(pendingWithdrawal && updatingWithdrawalId === pendingWithdrawal._id);
@@ -249,7 +249,7 @@ const AdminDashboardPage = () => {
     {
       label: "Platform Fees",
       value: formatMoney(summary.platformFees, dashboardCurrency),
-      icon: IndianRupee,
+      icon: DollarSign,
       bg: s.statBg4,
       c: s.statColor4,
     },
@@ -304,7 +304,7 @@ const AdminDashboardPage = () => {
         <section className={s.heroSection}>
           <div>
             <h1 className={s.heroTitle}>
-              Admin <span className={s.heroTitleAccent}>Dashboard</span>
+              Platform <span className={s.heroTitleAccent}>Overview</span>
             </h1>
 
             <p className={s.heroSubtitle}>
@@ -312,15 +312,25 @@ const AdminDashboardPage = () => {
             </p>
           </div>
 
-          {message && (
-            <div
-              role={message.type === "error" ? "alert" : "status"}
-              className={message.type === "error" ? s.messageBannerError : s.messageBannerSuccess}
-            >
-              {message.text}
+          <div className={s.adminAccessCard}>
+            <div className={s.adminAccessIconWrap}>
+              <ShieldCheck className={s.adminAccessIcon} />
             </div>
-          )}
+            <div>
+              <p className={s.adminAccessTitle}>Admin Access Required</p>
+              <p className={s.adminAccessText}>Restricted area · actions are logged</p>
+            </div>
+          </div>
         </section>
+
+        {message && (
+          <div
+            role={message.type === "error" ? "alert" : "status"}
+            className={message.type === "error" ? s.messageBannerError : s.messageBannerSuccess}
+          >
+            {message.text}
+          </div>
+        )}
 
 
         {/* Cuadrícula de Tarjetas Métricas (KPIs) */}
@@ -441,7 +451,7 @@ const AdminDashboardPage = () => {
                     <div className={s.withdrawalAccountInfo}>
                       <Landmark className={s.withdrawalAccountIcon} />
                       <span>
-                        {withdrawal.payoutSnapshot?.bankName || "UPI Connection"}{" "}•{" "}
+                        {withdrawal.payoutSnapshot?.bankName || "Bank Connection"}{" "}•{" "}
                         {withdrawal.payoutSnapshot?.accountLast4
                           ? `•••• ${withdrawal.payoutSnapshot?.accountLast4}`
                           : withdrawal.payoutSnapshot?.upiId || "No details"
@@ -506,10 +516,10 @@ const AdminDashboardPage = () => {
                     <th className={s.th}>Provider</th>
                     <th className={s.th}>Service</th>
                     <th className={s.th}>Date & Time</th>
+                    <th className={s.th}>Gross</th>
+                    <th className={s.th}>Fees</th>
+                    <th className={s.th}>Provider Share</th>
                     <th className={s.th}>Status</th>
-                    <th className={s.th}>Total Paid</th>
-                    <th className={s.th}>Platform Fee</th>
-                    <th className={s.th}>Provider Net</th>
                   </tr>
                 </thead>
                 <tbody className={s.tbody}>
@@ -528,6 +538,13 @@ const AdminDashboardPage = () => {
                       <td className={s.tdMuted}>
                         {booking.date} · {booking.startTime} - {booking.endTime}
                       </td>
+                      <td className={s.tdBold}>{formatMoney(booking.amount, booking.currency)}</td>
+                      <td className={s.tdFees}>
+                        {formatMoney(booking.platformFeeAmount, booking.currency)}
+                      </td>
+                      <td className={s.tdEarnings}>
+                        {formatMoney(booking.providerPayoutAmount, booking.currency)}
+                      </td>
                       <td className={s.td}>
                         <span
                           className={`${s.bookingStatusBadge} ${getBookingStatusClass(
@@ -536,13 +553,6 @@ const AdminDashboardPage = () => {
                         >
                           {booking.status ? booking.status.replace(/_/g, " ") : "confirmed"}
                         </span>
-                      </td>
-                      <td className={s.tdBold}>{formatMoney(booking.amount, booking.currency)}</td>
-                      <td className={s.tdFees}>
-                        {formatMoney(booking.platformFeeAmount, booking.currency)}
-                      </td>
-                      <td className={s.tdEarnings}>
-                        {formatMoney(booking.providerPayoutAmount, booking.currency)}
                       </td>
                     </tr>
                   ))}

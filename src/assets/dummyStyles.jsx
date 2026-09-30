@@ -1267,6 +1267,13 @@ export const adminDashboardPageStyles = {
   heroTitleAccent:
     'bg-gradient-to-b from-[#FFA1CF] via-[#FF5C9D] to-[#E11D48] bg-clip-text text-transparent custom-brand-font text-[34px] sm:text-[36px] md:text-[44px] relative top-1 ml-1 md:ml-2',
   heroSubtitle: 'mt-1.5 text-[15px] font-medium text-slate-500',
+  adminAccessCard:
+    'flex items-center gap-3 rounded-[16px] border border-slate-100 bg-white px-4 py-3 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.06)]',
+  adminAccessIconWrap:
+    'flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[#F4F0FF] text-[#7D57F5]',
+  adminAccessIcon: 'h-5 w-5',
+  adminAccessTitle: 'text-[13px] font-extrabold text-slate-900 leading-tight',
+  adminAccessText: 'text-[12px] font-medium text-slate-500 leading-tight',
   messageBannerSuccess:
     'w-full rounded-[14px] border border-emerald-100 bg-emerald-50 px-4 py-3 text-[13px] font-bold text-emerald-700 shadow-sm md:w-auto',
   messageBannerError:
