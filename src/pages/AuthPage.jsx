@@ -39,6 +39,9 @@ const AuthPage = () => {
   const [message, setMessage] = useState("");             // mensajes de error o éxito
   const [otpCooldown, setOtpCooldown] = useState(0);      // segundos que faltan para poder reenviar el código
 
+  // Derivado: true cuando el formulario está en modo registro
+  const isRegister = mode === "register";
+
   // Si ProtectedRoute mandó al usuario aquí con <Navigate to="/login" state={{ from: location }} />,
   // aquí recuperamos la ubicación de la página que intentaba ver.
   // Si entró directamente a /login, no habrá state y será undefined.

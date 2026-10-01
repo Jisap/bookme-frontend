@@ -1,7 +1,8 @@
-import { Navigate, Route, Routes } from "react-router-dom"
+import { Navigate, Route, Routes, useLocation } from "react-router-dom"
 import AdminDashboardPage from "./admin/AdminDashboard"
 import AdminLoginPage from "./admin/AdminLoginPage"
 import AuthPage from "./pages/AuthPage"
+import DashboardPage from "./pages/DashboardPage"
 
 const ProtectedRoute = ({ children }) => {
   const location = useLocation();
@@ -44,13 +45,23 @@ const App = () => {
       }
 
       />
+
       <Route path="/admin/login" element={<AdminLoginPage />} />
+
       <Route path="/admin/dashboard" element={
         <AdminProtectedRoute>
           <AdminDashboardPage />
         </AdminProtectedRoute>
       } />
 
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
 
     </Routes>
   )

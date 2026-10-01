@@ -1,10 +1,10 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
-import hexagonLogo from "@/assets/hexagon_Logo.png";
-import { ChrevronDown, LogOut, Menu, X } from "lucide-react";
+import hexagonLogo from "../assets/Hexagon_Logo.png";
+import { ChevronDown, LogOut, SquareMenu, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { getMe } from "../api/auth";
-import { appLayoutStyles } from "../assets/dummyStyles";
+import { appLayoutStyles as s } from "../assets/dummyStyles";
 
 const navItems = [
   { to: "/", label: "Dashboard" },
@@ -40,7 +40,7 @@ const AppLayout = ({ children }) => {
   // Si existe token de usuario, carga el perfil
   useEffect(() => {
     if (hasToken) {
-      getMe().then(({ data }) => setUser(data?.user).catch(() => { }))
+      getMe().then(({ data }) => setUser(data?.user)).catch(() => { });
     }
   }, [hasToken]);
 
@@ -49,7 +49,7 @@ const AppLayout = ({ children }) => {
     navigate("/login");
   };
 
-  const displayName = user?.bussinessName || "My Business";
+  const displayName = user?.businessName || "My Business";
   const avatarInitial = displayName.slice(0, 1).toUpperCase();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -101,7 +101,7 @@ const AppLayout = ({ children }) => {
                     <button
                       onClick={() => {
                         setDropdownOpen(false);
-                        Logout();
+                        logout();
                       }}
                       className={s.logoutButton}
                     >
