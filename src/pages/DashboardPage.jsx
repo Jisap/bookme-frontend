@@ -484,6 +484,31 @@ const StatusPanel = ({ confirmed, rescheduled, cancelled }) => {
 // 4. COMPONENTE PRINCIPAL: DashboardPage
 // ============================================================================
 
+/**
+ * Opciones del filtro de periodo compartido por ambos gráficos (reservas e ingresos).
+ * Se extraen a constante para que añadir/quitar un periodo no diverja entre selects.
+ */
+const GRAPH_FILTER_OPTIONS = [
+  { value: "daily", label: "Daily" },
+  { value: "weekly", label: "Weekly" },
+  { value: "monthly", label: "Monthly" },
+  { value: "yearly", label: "Yearly" },
+];
+
+/**
+ * Select del filtro de periodo. Ambos gráficos comparten el mismo estado `graphFilter`
+ * a propósito: cambiarlo actualiza Booking Overview y Earnings Overview a la vez.
+ */
+const TrendFilterSelect = ({ value, onChange, className }) => (
+  <select value={value} onChange={(e) => onChange(e.target.value)} className={className}>
+    {GRAPH_FILTER_OPTIONS.map((option) => (
+      <option key={option.value} value={option.value}>
+        {option.label}
+      </option>
+    ))}
+  </select>
+);
+
 export default function DashboardPage() {
   // --- Estado ---
   const [user, setUser] = useState(null);
@@ -606,7 +631,9 @@ export default function DashboardPage() {
           <h1 className={s.headerTitle}>
             {user ? (<>Welcome Back, <span className={s.gradientText}>{user.businessName || user.name}</span> <span className="ml-2">👋</span></>) : ("Good morning 👋")}
           </h1>
+
           <p className={s.headerSubtitle}>Here's what's happening with your business today.</p>
+
           <div className={s.headerButtonsContainer}>
             <Link to="/services" className={s.headerButton}>Add services</Link>
             <Link to="/availability" className={s.headerButton}>Set availability</Link>
@@ -619,6 +646,7 @@ export default function DashboardPage() {
           <div className={s.heroCard}>
             <div className={s.heroContent}>
               <h2 className={s.heroTitle}>Grow your practice.<br />Impact more lives.</h2>
+
               {publicLink ? (
                 <a href={publicLink} target="_blank" rel="noreferrer" className={s.heroButton}>
                   View booking page <ArrowRight className={s.arrowIcon} />
@@ -627,6 +655,7 @@ export default function DashboardPage() {
                 <Link to="/profile" className={s.heroButton}>Setup booking page <ArrowRight className={s.arrowIcon} /></Link>
               )}
             </div>
+
             <div className={s.heroImageWrapper}>
               <img src={p1Image} alt="Hero" className={s.heroImage} />
             </div>
@@ -642,9 +671,11 @@ export default function DashboardPage() {
                 </button>
               )}
             </div>
+
             <p className={s.publicLinkHelper}>Share your link and start getting<br />bookings instantly.</p>
 
             <h4 className={s.shareTitle}>Share your link</h4>
+
             <div className={s.socialIconsContainer}>
               <a href={`https://wa.me/?text=${encodeURIComponent("Book a session with me: " + publicLink)}`} target="_blank" rel="noreferrer" className={s.socialIconLink}>
                 <img src={whatsappLogo} alt="WhatsApp" className={s.socialIconImgWhatsapp} />
@@ -677,8 +708,10 @@ export default function DashboardPage() {
               <div className={`${s.statIconWrapper} ${stat.ibg} ${stat.icfg}`}>
                 <stat.icon className="w-[22px] h-[22px]" />
               </div>
+
               <div>
                 <p className={s.statLabel}>{stat.label}</p>
+
                 <h2 className={s.statValue}>{stat.value}</h2>
               </div>
             </div>
@@ -690,13 +723,9 @@ export default function DashboardPage() {
           <div className={s.chartCard}>
             <div className={s.chartHeader}>
               <h3 className={s.chartTitle}>Booking Overview</h3>
-              <select value={graphFilter} onChange={(e) => setGraphFilter(e.target.value)} className={s.chartSelect}>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="yearly">Yearly</option>
-              </select>
+              <TrendFilterSelect value={graphFilter} onChange={setGraphFilter} className={s.chartSelect} />
             </div>
+
             <div className={s.chartOverflow}>
               <div className={s.chartInnerWrapper}>
                 <LineChart data={bookingTrend} accent="#7D57F5" />
@@ -706,6 +735,7 @@ export default function DashboardPage() {
 
           <div className={s.chartCard}>
             <h3 className={s.chartTitle}>Bookings by Status</h3>
+
             <div className={s.statusPanelContainer}>
               <StatusPanel confirmed={confirmedBookings.length} rescheduled={rescheduledBookings.length} cancelled={cancelledBookings.length} />
             </div>
@@ -719,6 +749,7 @@ export default function DashboardPage() {
               <h3 className={s.chartTitle}>Top Services</h3>
               <Link to="/services" className={s.viewAllLink}>View all</Link>
             </div>
+
             <div className={s.servicesList}>
               {topServices.map((service, index) => {
                 const max = Math.max(1, ...topServices.map((i) => i.bookingCount));
@@ -732,6 +763,7 @@ export default function DashboardPage() {
                     <div className={`${s.serviceIconBox} mr-4`}>
                       <img src={ICON_MAP[service.icon || "C1.png"]} alt={service.name} className={s.serviceIconImg} />
                     </div>
+
                     <div className="flex-1 pr-6">
                       <p className="text-[14px] font-semibold text-slate-800 leading-tight">{service.name}</p>
                       <p className="text-[12px] font-medium text-slate-500 mt-1 mb-2.5">{service.bookingCount} bookings</p>
@@ -739,6 +771,7 @@ export default function DashboardPage() {
                         <div className={`h-full rounded-full ${barColor}`} style={{ width: `${pct}%`, transition: "width 1s ease-out" }}></div>
                       </div>
                     </div>
+
                     <span className="text-[13px] font-semibold text-slate-600 text-right min-w-[36px]">{truePct}%</span>
                   </div>
                 );
@@ -752,24 +785,23 @@ export default function DashboardPage() {
           <div className={s.earningsCard}>
             <div className={s.earningsHeader}>
               <h3 className={s.chartTitle}>Earnings Overview</h3>
-              <select value={graphFilter} onChange={(e) => setGraphFilter(e.target.value)} className={s.earningsSelect}>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="yearly">Yearly</option>
-              </select>
+              <TrendFilterSelect value={graphFilter} onChange={setGraphFilter} className={s.earningsSelect} />
             </div>
+
             <div className={s.earningsAmountRow}>
               {/* Saldo disponible del wallet (minor units) formateado en la moneda del dashboard (USD/EUR) */}
               <h2 className={s.earningsAmount}>{formatMoney(wallet?.available || 0, dashboardCurrency)}</h2>
+
               <div className={s.earningsTrendContainer}>
                 <span className={monthlyEarningsTrend >= 0 ? s.earningsTrendUp : s.earningsTrendDown}>
                   <ArrowRight className={`${s.trendArrow} ${monthlyEarningsTrend >= 0 ? "-rotate-45" : "rotate-45"} mr-1`} />
                   {Math.abs(monthlyEarningsTrend).toFixed(1)}%
                 </span>
+
                 <span className={s.trendLabel}>from last month</span>
               </div>
             </div>
+
             <div className={s.chartOverflow}>
               <div className={s.chartInnerWrapper}>
                 <BarChart data={earningTrend} accent="#7c3aed" currency={dashboardCurrency} />
@@ -785,6 +817,7 @@ export default function DashboardPage() {
               <h3 className={s.chartTitle}>Upcoming Bookings</h3>
               <Link to="/bookings" className={s.viewAllLink}>View all</Link>
             </div>
+
             <div className={s.upcomingList}>
               {upcomingBookings.map((booking) => {
                 const isConfirmed = booking.status === "confirmed";
@@ -796,16 +829,19 @@ export default function DashboardPage() {
                       <div className={s.avatarBox}>
                         <img src={AVATAR_MAP[booking.customerAvatar || "A1.png"]} alt={booking.customerName} className={s.avatarImg} />
                       </div>
+
                       <div>
                         <p className={s.bookingCustomerName}>{booking.customerName || "Guest"}</p>
                         <p className={s.bookingServiceName}>{booking.service?.name || "Service"}</p>
                       </div>
                     </div>
+
                     <div className={s.bookingRight}>
                       <div className={s.bookingDateTimeWrapper}>
                         <div className={s.bookingDate}>
                           <Calendar className={s.calendarIconSmall} /> {date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                         </div>
+
                         <div className={s.bookingTime}>
                           <Clock className={s.clockIconSmall} /> {booking.startTime && booking.endTime ? `${booking.startTime} - ${booking.endTime}` : date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
                         </div>
@@ -815,6 +851,7 @@ export default function DashboardPage() {
                   </div>
                 );
               })}
+
               {upcomingBookings.length === 0 && (
                 <p className="text-[13px] font-medium text-slate-500 text-center pt-8">No upcoming bookings.</p>
               )}
@@ -828,6 +865,7 @@ export default function DashboardPage() {
                 <div className={s.integrationIconBox}>
                   <img src={googleCalendarLogo} alt="Google Calendar" className={s.integrationIconImgDefault} />
                 </div>
+
                 <div>
                   <p className={s.integrationName}>Google Calendar</p>
                   <div className={s.integrationStatus}>
@@ -835,10 +873,12 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
+
               <div className={s.integrationItem}>
                 <div className={s.integrationIconBox}>
                   <img src={gmailLogo} alt="Gmail" className={s.integrationIconImgGmail} />
                 </div>
+
                 <div>
                   <p className={s.integrationName}>Gmail</p>
                   <div className={s.integrationStatus}>
@@ -847,6 +887,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
+
             <div className={s.integrationsImageWrapper}>
               <img src={p5Image} alt="Integration visual" className={s.integrationsImage} />
             </div>
