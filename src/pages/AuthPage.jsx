@@ -69,6 +69,57 @@ const AuthPage = () => {
   }, [otpCooldown]);
 
   // ───────────────────────────────────────────────────────────
+  // VERIFICACIÓN DEL CÓDIGO OTP
+  // ───────────────────────────────────────────────────────────
+  // Envía el código de 6 dígitos al backend para validarlo en tiempo real.
+  // Si es correcto, activa otpVerified (badge verde) y permite completar el registro.
+  const verifyOtpCode = async (codeToVerify) => {
+    const code = (codeToVerify ?? form.emailOtp)?.toString().trim();
+    if (!code || code.length !== 6) {
+      setMessage("Please enter the 6-digit verification code");
+      return;
+    }
+    if (!form.email) {
+      setMessage("Enter your email first");
+      return;
+    }
+
+    setOtpLoading(true);
+    setMessage("Verifying code...");
+    try {
+      await verifyRegistrationOtp({
+        email: form.email.trim().toLowerCase(),
+        emailOtp: code,
+      });
+      setOtpVerified(true);
+      setMessage("Email verified successfully");
+    } catch (error) {
+      setOtpVerified(false);
+      setMessage(error?.response?.data?.message || "Invalid OTP");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  // ───────────────────────────────────────────────────────────
+  // MANEJADOR DE PEGADO PARA EL OTP (onPaste)
+  // ───────────────────────────────────────────────────────────
+  // Al copiar el código del email suelen incluirse espacios en blanco o saltos de línea.
+  // Este manejador limpia caracteres no numéricos, extrae los 6 dígitos y dispara
+  // la verificación inmediata sin requerir acciones adicionales del usuario.
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pastedText = e.clipboardData.getData("text") || "";
+    const digitsOnly = pastedText.replace(/\D/g, "").slice(0, 6);
+    if (!digitsOnly) return;
+    setForm((prev) => ({ ...prev, emailOtp: digitsOnly }));
+    if (otpVerified) setOtpVerified(false);
+    if (digitsOnly.length === 6 && form.email) {
+      verifyOtpCode(digitsOnly);
+    }
+  };
+
+  // ───────────────────────────────────────────────────────────
   // MANEJADOR ÚNICO PARA TODOS LOS INPUTS
   // ───────────────────────────────────────────────────────────
   const handleChange = async (event) => {
@@ -86,18 +137,7 @@ const AuthPage = () => {
 
       // Cuando completa los 6 dígitos, se verifica automáticamente en el backend
       if (digitsOnly.length === 6 && form.email) {
-        try {
-          await verifyRegistrationOtp({
-            email: form.email,
-            emailOtp: digitsOnly,
-          });
-          setOtpVerified(true);
-          setMessage("Email verified successfully");
-        } catch (error) {
-          setOtpVerified(false);
-          // Mensaje del servidor si existe; si no, uno genérico
-          setMessage(error?.response?.data?.message || "Invalid OTP");
-        }
+        verifyOtpCode(digitsOnly);
       }
 
       return; // no seguimos a los otros casos
@@ -155,8 +195,30 @@ const AuthPage = () => {
   // ───────────────────────────────────────────────────────────
   const handleSubmit = async (event) => {
     event.preventDefault(); // evita que el navegador recargue la página
-    setLoading(true);
     setMessage("");
+
+    // Validación en el frontend antes de enviar la petición al servidor:
+    // Evita enviar peticiones incompletas a /api/auth/register que provocarían
+    // el error 400 ("Name, email and password are required").
+    if (isRegister) {
+      if (!form.name.trim() || !form.email.trim() || !form.password) {
+        setMessage("Name, email and password are required");
+        return;
+      }
+      // Aseguramos que el usuario haya verificado el código de 6 dígitos antes de crear la cuenta
+      if (!otpVerified) {
+        setMessage("Please verify your email code first");
+        return;
+      }
+    } else {
+      // Para login solo requerimos email y contraseña
+      if (!form.email.trim() || !form.password) {
+        setMessage("Email and password are required");
+        return;
+      }
+    }
+
+    setLoading(true);
 
     try {
       // En registro se envía todo el formulario; en login solo email y contraseña
@@ -313,20 +375,36 @@ const AuthPage = () => {
                     name="emailOtp"
                     type="text"
                     inputMode="numeric"   // en móvil abre el teclado numérico
-                    maxLength={6}
                     value={form.emailOtp}
                     onChange={handleChange}
+                    onPaste={handleOtpPaste}
+                    // Al pulsar Enter, verifica el código de inmediato
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        verifyOtpCode(form.emailOtp);
+                      }
+                    }}
                     className={s.otpField}
                     placeholder="Enter 6-digit code"
                     autoComplete="one-time-code" // permite autocompletar el código desde el SMS/email
                     pattern="[0-9]*"
                   />
 
-                  {/* Si ya está verificado, botón deshabilitado con check; si no, botón de envío */}
+                  {/* Si ya está verificado, botón deshabilitado con check; si tiene 6 dígitos listos, botón de verificar; si no, botón de envío/reenvío */}
                   {otpVerified ? (
                     <button type="button" disabled className={s.otpVerifiedButton}>
                       <BadgeCheck className={s.otpVerifiedIcon} />
                       Verified
+                    </button>
+                  ) : form.emailOtp.length === 6 && otpSentTo === form.email.trim().toLowerCase() ? (
+                    <button
+                      type="button"
+                      onClick={() => verifyOtpCode(form.emailOtp)}
+                      disabled={otpLoading}
+                      className={s.otpButton}
+                    >
+                      {otpLoading ? "Verifying..." : "Verify code"}
                     </button>
                   ) : (
                     <button
