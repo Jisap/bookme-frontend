@@ -39,20 +39,15 @@ const AuthPage = () => {
   const [message, setMessage] = useState("");             // mensajes de error o éxito
   const [otpCooldown, setOtpCooldown] = useState(0);      // segundos que faltan para poder reenviar el código
 
-  // ───────────────────────────────────────────────────────────
-  // VALORES DERIVADOS (se calculan en cada render, no son estado)
-  // ───────────────────────────────────────────────────────────
-  const isRegister = mode === "register"; // atajo booleano para no repetir la comparación
-
-  // Si otra página mandó al usuario aquí con navigate("/auth", { state: { form: location } }),
-  // aquí recuperamos esa ubicación de origen. Si entró directo a /auth, será undefined.
-  const formLocation = location.state?.form;
+  // Si ProtectedRoute mandó al usuario aquí con <Navigate to="/login" state={{ from: location }} />,
+  // aquí recuperamos la ubicación de la página que intentaba ver.
+  // Si entró directamente a /login, no habrá state y será undefined.
+  const fromLocation = location.state?.from;
 
   // Destino tras autenticarse: la página de origen (con su query string) o /profile por defecto.
-  const redirectTo = formLocation
-    ? `${formLocation.pathname}${formLocation.search || ""}`
+  const redirectTo = fromLocation
+    ? `${fromLocation.pathname}${fromLocation.search || ""}`
     : "/profile";
-
   // ───────────────────────────────────────────────────────────
   // EFECTO: cuenta atrás para poder reenviar el código
   // ───────────────────────────────────────────────────────────
@@ -174,7 +169,9 @@ const AuthPage = () => {
         localStorage.setItem("token", data.token);
       }
 
-      // replace: true sustituye /auth en el historial, así "atrás" no vuelve al login
+      // Redirige a la página de origen (o a /profile). Ahora ya hay token, así que
+      // ProtectedRoute dejará pasar. replace: true sustituye /login en el historial,
+      // de modo que el botón "atrás" no vuelva al formulario de acceso.
       navigate(redirectTo, { replace: true });
       return;
     } catch (error) {
@@ -394,6 +391,11 @@ const AuthPage = () => {
               : "Need an account? Register"}
           </button>
         </section>
+      </div>
+
+      <div className={s.footerLinks}>
+        <Link to="/privacy" className={s.footerLink}>Privacy Policy</Link>
+        <Link to="/terms" className={s.footerLink}>Terms of Service</Link>
       </div>
     </div>
   );
