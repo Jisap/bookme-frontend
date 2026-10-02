@@ -9,6 +9,7 @@ import PublicBookingPage from "./pages/PublicBookingPage"
 import BookingSuccessPage from "./pages/BookingSuccessPage"
 import BookingCancelledPage from "./pages/BookingCancelledPage"
 import PaymentsPage from "./pages/PaymentsPage"
+import ServicesPage from "./pages/ServicesPage"
 
 const ProtectedRoute = ({ children }) => {
   const location = useLocation();
@@ -97,6 +98,15 @@ const App = () => {
         element={
           <ProtectedRoute>
             <PaymentsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/services"
+        element={
+          <ProtectedRoute>
+            <ServicesPage />
           </ProtectedRoute>
         }
       />
