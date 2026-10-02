@@ -3,6 +3,9 @@ import AdminDashboardPage from "./admin/AdminDashboard"
 import AdminLoginPage from "./admin/AdminLoginPage"
 import AuthPage from "./pages/AuthPage"
 import DashboardPage from "./pages/DashboardPage"
+import ProfilePage from "./pages/ProfilePage"
+import BookingsPage from "./pages/BookingPage"
+import PublicBookingPage from "./pages/PublicBookingPage"
 
 const ProtectedRoute = ({ children }) => {
   const location = useLocation();
@@ -62,6 +65,26 @@ const App = () => {
           </ProtectedRoute>
         }
       />
+
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/bookings"
+        element={
+          <ProtectedRoute>
+            <BookingsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route path="/book/:slug" element={<PublicBookingPage />} />
 
     </Routes>
   )

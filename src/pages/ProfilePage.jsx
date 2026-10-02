@@ -39,7 +39,6 @@ import AppLayout from "../components/AppLayout";
 import { getMe, updateProfile } from "../api/auth";
 import { getGoogleConnectUrl } from "../api/integration";
 
-// Iconos de Lucide React (ligeros y personalizables)
 import {
   Copy,
   BadgeCheck,
@@ -124,11 +123,11 @@ export default function ProfilePage() {
   });
 
   // --- Estado: datos y UI ---
-  const [user, setUser] = useState(null); // Usuario/proveedor cargado del backend (incluye `slug`)
-  const [loading, setLoading] = useState(false); // Guardando perfil (deshabilita botón Save)
-  const [connectingCalendar, setConnectingCalendar] = useState(false); // Redirigiendo a OAuth de Google
-  const [message, setMessage] = useState(getCalendarMessage(calendarNotice)); // Banner global (éxito/error)
-  const [copyMessage, setCopyMessage] = useState(""); // Feedback temporal del botón "Copy link"
+  const [user, setUser] = useState(null);                                       // Usuario/proveedor cargado del backend (incluye `slug`)
+  const [loading, setLoading] = useState(false);                                // Guardando perfil (deshabilita botón Save)
+  const [connectingCalendar, setConnectingCalendar] = useState(false);          // Redirigiendo a OAuth de Google
+  const [message, setMessage] = useState(getCalendarMessage(calendarNotice));   // Banner global (éxito/error)
+  const [copyMessage, setCopyMessage] = useState("");                           // Feedback temporal del botón "Copy link"
 
   // --- Estado derivado (recalculado en cada render, sin useMemo por ser barato) ---
 
@@ -302,6 +301,7 @@ export default function ProfilePage() {
           <div className={s.headerRow}>
             <div className={s.headerTextBlock}>
               <h3 className={s.profileLabel}>Profile</h3>
+
               <h1 className={s.mainHeading}>
                 Shape your{" "}
                 <span className={s.headingGradientPublic}>public</span>
@@ -313,11 +313,13 @@ export default function ProfilePage() {
                   </span>
                 </span>
               </h1>
+
               <p className={s.subHeading}>
                 Personalize your booking page, connect your tools, and share
                 your link with confidence.
               </p>
             </div>
+
             <div className={s.illustrationContainer}>
               <img
                 src={p2Image}
@@ -330,6 +332,7 @@ export default function ProfilePage() {
           {/* Public Booking Link Card: barra con URL + doble botón de copiar + indicador "live" */}
           <div className={s.linkCard}>
             <h4 className={s.linkCardTitle}>Public booking link</h4>
+
             <div className={s.linkRow}>
               <div className={s.linkBar}>
                 <span className={s.linkText}>{publicLink}</span>
@@ -340,11 +343,13 @@ export default function ProfilePage() {
                   <Copy className={s.iconSmall} />
                 </button>
               </div>
+
               <button onClick={copyPublicLink} className={s.linkCopyButtonMain}>
                 <Wand2 className={s.iconSmall} />
                 {copyMessage || "Copy link"}
               </button>
             </div>
+
             <div className={s.linkLiveIndicator}>
               <BadgeCheck className={s.iconSmall} />
               <span>Your link is live and ready to share!</span>
@@ -363,14 +368,18 @@ export default function ProfilePage() {
                     className={s.integrationLogoImg}
                   />
                 </div>
+
                 <span className={s.integrationLabel}>Stripe</span>
               </div>
+
               <h4 className={s.integrationStatusConfigured}>
                 Configured <BadgeCheck className={s.integrationCheckIcon} />
               </h4>
+
               <p className={s.integrationDesc}>
                 Collect payments securely via Stripe.
               </p>
+
               <div className={s.integrationInfoPill}>
                 Platform payment gateway
               </div>
@@ -386,14 +395,18 @@ export default function ProfilePage() {
                     className={s.integrationLogoImg}
                   />
                 </div>
+
                 <span className={s.integrationLabel}>Calendar</span>
               </div>
+
               <h4 className={s.integrationStatusConnected}>
                 Connected <BadgeCheck className={s.integrationCheckIcon} />
               </h4>
+
               <p className={s.integrationDesc}>
                 Bookings will sync automatically.
               </p>
+
               <button
                 onClick={connectGoogleCalendar}
                 disabled={connectingCalendar}
@@ -413,14 +426,18 @@ export default function ProfilePage() {
                     className={s.integrationLogoImg}
                   />
                 </div>
+
                 <span className={s.integrationLabel}>Emails</span>
               </div>
+
               <h4 className={s.integrationStatusConfigured}>
                 Configured <BadgeCheck className={s.integrationCheckIcon} />
               </h4>
+
               <p className={s.integrationDesc}>
                 Customers receive email updates.
               </p>
+
               <div className={s.integrationInfoPill}>
                 Automatic booking emails
               </div>
@@ -434,6 +451,7 @@ export default function ProfilePage() {
             <div className={s.formHeaderIcon}>
               <Users className={s.formHeaderUserIcon} />
             </div>
+
             <div>
               <h2 className={s.formTitle}>Business details</h2>
               <p className={s.formSubtitle}>Update your profile info</p>
@@ -539,6 +557,7 @@ export default function ProfilePage() {
               <Save className={s.saveButtonIcon} />
               {loading ? "Saving..." : "Save profile settings"}
             </button>
+
             {/* Banner de feedback: éxito (verde) o error (rojo) según `getMessageBannerClass()` */}
             {message && (
               <div
@@ -572,6 +591,7 @@ export default function ProfilePage() {
                       "linear-gradient(to right, transparent, black 80%)",
                   }}
                 />
+
                 <div className={s.previewBannerOverlay} />
               </div>
 
@@ -580,6 +600,7 @@ export default function ProfilePage() {
                   <div className={s.previewAvatar}>
                     {(form.businessName || "M").slice(0, 1).toUpperCase()}
                   </div>
+
                   <div>
                     <div className={s.previewLabel}>Public preview</div>
                     <h2 className={s.previewTitle}>
@@ -599,6 +620,7 @@ export default function ProfilePage() {
                 <div className={s.featureIconBox}>
                   <CalendarDays className={s.featureIcon} />
                 </div>
+
                 <div>
                   <h5 className={s.featureTitle}>Easy Booking</h5>
                   <p className={s.featureText}>
@@ -606,10 +628,12 @@ export default function ProfilePage() {
                   </p>
                 </div>
               </div>
+
               <div className={s.featureItem}>
                 <div className={s.featureIconBox}>
                   <Shield className={s.featureIcon} />
                 </div>
+
                 <div>
                   <h5 className={s.featureTitle}>Secure Payments</h5>
                   <p className={s.featureText}>
@@ -617,10 +641,12 @@ export default function ProfilePage() {
                   </p>
                 </div>
               </div>
+
               <div className={s.featureItem}>
                 <div className={s.featureIconBox}>
                   <BellRing className={s.featureIcon} />
                 </div>
+
                 <div>
                   <h5 className={s.featureTitle}>Instant Updates</h5>
                   <p className={s.featureText}>
@@ -628,10 +654,12 @@ export default function ProfilePage() {
                   </p>
                 </div>
               </div>
+
               <div className={s.featureItem}>
                 <div className={s.featureIconBox}>
                   <Zap className={s.featureIcon} />
                 </div>
+
                 <div>
                   <h5 className={s.featureTitle}>Hassle-free</h5>
                   <p className={s.featureText}>
@@ -650,6 +678,7 @@ export default function ProfilePage() {
               <div
                 className={`${s.customerViewOverlay} ${dynamicThemeUI.gradient}`}
               />
+
               <div className={s.customerViewContent}>
                 <div
                   className={s.customerAvatar}
@@ -657,9 +686,11 @@ export default function ProfilePage() {
                 >
                   {(form.businessName || "M").slice(0, 1).toUpperCase()}
                 </div>
+
                 <h3 className={s.customerName}>
                   {form.businessName || "Mental Clinic"}
                 </h3>
+
                 <div className={s.customerMeta}>
                   <span className={s.customerMetaItem}>
                     <Clock className={s.customerMetaIcon} /> 60 min
@@ -669,6 +700,7 @@ export default function ProfilePage() {
                     {form.duration || 900}
                   </span>
                 </div>
+
                 <div className={s.customerTimeslotSection}>
                   <div className={s.timeslotLabel}>Select Time</div>
                   <button
