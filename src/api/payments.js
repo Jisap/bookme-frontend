@@ -21,7 +21,7 @@ export const updatePayoutDetails = (data) => client.put("/payments/payout-detail
 
 /**
  * Solicita un retiro de fondos desde el saldo disponible de la billetera.
- * @param {number} amount - Importe a retirar en paise (mínimo 100).
+ * @param {number} amount - Importe a retirar en cents / minor units USD-EUR (mínimo 100).
  * @returns {Promise<import('axios').AxiosResponse>} Retiro creado.
  */
 export const requestWithdrawal = (amount) => client.post("/payments/withdrawals", { amount });

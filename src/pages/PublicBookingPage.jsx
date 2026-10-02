@@ -357,7 +357,7 @@ export default function PublicBookingPage() {
                           : s.serviceDetailInactive
                       }
                     >
-                      {service.duration} min · ₹
+                      {service.duration} min · $
                       {Number(service.price).toLocaleString()}
                     </p>
                     {service.description && (
@@ -394,7 +394,7 @@ export default function PublicBookingPage() {
               <span style={{ color: accent }}>{selectedService.name}</span>
               <span className="text-slate-300">·</span>
               {selectedService.duration} minutes
-              <span className="text-slate-300">·</span>₹
+              <span className="text-slate-300">·</span>$
               {Number(selectedService.price).toLocaleString()}
             </p>
           ) : (
@@ -623,7 +623,7 @@ export default function PublicBookingPage() {
                 {loading
                   ? "Preparing..."
                   : Number(selectedService?.price || 0) > 0
-                    ? `Pay ₹${Number(selectedService.price).toLocaleString()} and Book Appointment`
+                    ? `Pay $${Number(selectedService.price).toLocaleString()} and Book Appointment`
                     : "Confirm booking"}
               </button>
 

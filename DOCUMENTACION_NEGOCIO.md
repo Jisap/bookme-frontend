@@ -125,7 +125,7 @@ Ruta: `frontend/src/App.jsx:87` → `/book/:slug` → `PublicBookingPage.jsx`.
 
 - **Slug:** identificador público derivado del nombre (`Nails by Ana` → `nails-by-ana`). Va en `/book/:slug`.
 - **Slot:** hueco reservable generado desde disponibilidad menos reservas activas.
-- **Minor units:** dinero en céntimos/paise (`5000` = `50.00`). Todo cálculo y Stripe usan esto.
+- **Minor units:** dinero en cents / céntimos USD-EUR (`5000` = `50.00`). Todo cálculo y Stripe usan esto.
 - **Payout:** parte del proveedor (`90%`). **Fee:** parte de la plataforma (`10%`).
 - **Wallet available:** `earned - held + reversed`. Es lo retirable.
 - **Draft de reschedule:** cambio de fecha/hora aún no confirmado (`reschedules[bookingId]` en `BookingPage`).

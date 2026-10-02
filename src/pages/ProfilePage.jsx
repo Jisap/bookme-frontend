@@ -27,6 +27,10 @@
  * estilos de tema, banner) se calculan en cada render porque son baratos.
  * Estilos centralizados en `profilePageStyles as s` (dummyStyles) + variables
  * CSS `--brand-accent` / `--brand-panel` para el preview en vivo.
+ *
+ * Moneda: USD/EUR (acordado). El preview usa `DollarSign` ($) como símbolo
+ * neutro, igual que `DashboardPage`/`AdminDashboard` formatean con
+ * `Intl.NumberFormat("en-US", { currency: "USD" })`. No usar `IndianRupee`/₹.
  */
 
 import { useEffect, useState } from "react";
@@ -51,7 +55,7 @@ import {
   BellRing,
   Zap,
   Clock,
-  IndianRupee,
+  DollarSign,
 } from "lucide-react";
 
 // Importación de recursos estáticos (logos de integraciones, ilustración y banners por tema)
@@ -696,7 +700,8 @@ export default function ProfilePage() {
                     <Clock className={s.customerMetaIcon} /> 60 min
                   </span>
                   <span className={s.customerMetaItem}>
-                    <IndianRupee className={s.customerMetaIcon} />{" "}
+                    {/* Moneda USD/EUR (acordado): preview usa $ como símbolo neutro, igual que Dashboard/Admin con Intl USD */}
+                    <DollarSign className={s.customerMetaIcon} />{" "}
                     {form.duration || 900}
                   </span>
                 </div>
