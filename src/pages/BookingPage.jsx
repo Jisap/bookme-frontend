@@ -1,11 +1,49 @@
+/**
+ * BookingPage.jsx
+ *
+ * Página de gestión de reservas (Bookings) para proveedores de servicios.
+ * Propósito: listar y filtrar citas de clientes, revisar estado de pago,
+ * sincronización con Google Calendar y contadores de reprogramación, y
+ * permitir cancelar o reprogramar cada reserva desde modales de confirmación.
+ *
+ * Flujo de datos:
+ * - `filters { date, status }` vive en estado local. Cada cambio dispara el
+ *   `useEffect` que relanza `fetchBookings(filters)` -> GET `/bookings?date=&status=`.
+ * - `reschedules` es un diccionario `{ [bookingId]: { date, startTime, endTime } }`
+ *   con los borradores (drafts) de reprogramación aún no confirmados.
+ * - Cancelar usa modal de confirmación (`cancelModalBookingId`) + PATCH `/bookings/:id`
+ *   con `{ status: "cancelled" }`. Reprogramar usa `rescheduleModalBooking` +
+ *   PATCH `/bookings/:id/reschedule` con el draft fusionado.
+ * - `message` es el banner global de feedback (éxito/info/error de carga o de acciones).
+ *
+ * Contratos API (ver `src/api/bookings.js`):
+ * - `listBookings(params)` -> GET `/bookings` (filtros opcionales `date`, `status`).
+ * - `updateBookingStatus(id, status)` -> PATCH `/bookings/:id` con `{ status }`.
+ * - `rescheduleBooking(id, draft)` -> PATCH `/bookings/:id/reschedule` con
+ *   `{ date, startTime, endTime }`; la respuesta puede traer `data.email { skipped, reason }`.
+ *
+ * Enfoque de diseño: componente funcional con estado local (`useState`) + recarga
+ * reactiva en `useEffect([filters])`. Sin `useMemo`: los derivados (variante del
+ * banner, valores de inputs del modal) son baratos de calcular en cada render.
+ * Estilos centralizados en `bookingsPageStyles as s` (dummyStyles) + `AppLayout`
+ * (sidebar + contenedor). Avatares resueltos vía `AVATAR_MAP` nombre-fichero -> import.
+ */
+
 import { useEffect, useState } from "react";
-import p7Image from "../assets/P7.png";
+
+// Layout general de la app (sidebar + contenedor)
 import AppLayout from "../components/AppLayout";
+
+// APIs del proyecto
 import {
   listBookings,
   rescheduleBooking,
   updateBookingStatus,
 } from "../api/bookings";
+
+// Iconos de Lucide React (ligeros y personalizables)
+// Nota: `BadgeCheck`, `MoreVertical`, `Plus` y `Trash2` se importan pero
+// actualmente no se usan en el render; se dejan para futuras acciones de la tarjeta.
 import {
   CalendarDays,
   Clock,
@@ -22,6 +60,9 @@ import {
   RefreshCcw,
   Check,
 } from "lucide-react";
+
+// Importación de recursos estáticos (ilustración de cabecera y avatares de clientes)
+import p7Image from "../assets/P7.png";
 import A1 from "../assets/avatars/A1.png";
 import A2 from "../assets/avatars/A2.png";
 import A3 from "../assets/avatars/A3.png";
@@ -37,8 +78,20 @@ import A12 from "../assets/avatars/A12.png";
 import A13 from "../assets/avatars/A13.png";
 import A15 from "../assets/avatars/A15.png";
 import A16 from "../assets/avatars/A16.png";
+
+// Diccionario de clases de esta página (mantiene el componente limpio de Tailwind inline)
 import { bookingsPageStyles as s } from "../assets/dummyStyles";
 
+// ============================================================================
+// 1. MAPEO DE RECURSOS Y CONSTANTES (fuera del componente)
+// ============================================================================
+
+/**
+ * Mapa nombre-fichero -> imagen importada para el avatar del cliente.
+ * El backend solo guarda el string (ej. "A3.png"); aquí se resuelve al asset real.
+ * Fallback en el render: `AVATAR_MAP[booking.customerAvatar || "A1.png"]`.
+ * (Nota: falta A14, igual que en DashboardPage/ProfilePage.)
+ */
 const AVATAR_MAP = {
   "A1.png": A1,
   "A2.png": A2,
@@ -57,16 +110,32 @@ const AVATAR_MAP = {
   "A16.png": A16,
 };
 
+/**
+ * Opciones del filtro de estado. El string vacío "" significa "All Statuses"
+ * (sin filtro) y no se envía como query param en `fetchBookings`.
+ */
 const statuses = ["", "confirmed", "rescheduled", "cancelled"];
 
-export default function BookingPage() {
-  const [bookings, setBookings] = useState([]);
-  const [filters, setFilters] = useState({ date: "", status: "" });
-  const [message, setMessage] = useState("");
-  const [reschedules, setReschedules] = useState({});
-  const [cancelModalBookingId, setCancelModalBookingId] = useState(null);
-  const [rescheduleModalBooking, setRescheduleModalBooking] = useState(null);
+// ============================================================================
+// 2. COMPONENTE PRINCIPAL: BookingPage
+// ============================================================================
 
+export default function BookingPage() {
+  // --- Estado: datos y UI ---
+  const [bookings, setBookings] = useState([]); // Lista de reservas devuelta por GET /bookings
+  const [filters, setFilters] = useState({ date: "", status: "" }); // Filtros controlados { YYYY-MM-DD, status }
+  const [message, setMessage] = useState(""); // Banner global de feedback (carga / reschedule / error)
+  const [reschedules, setReschedules] = useState({}); // Drafts por reserva: { [bookingId]: { date, startTime, endTime } }
+  const [cancelModalBookingId, setCancelModalBookingId] = useState(null); // Id en el modal de cancelación (null = cerrado)
+  const [rescheduleModalBooking, setRescheduleModalBooking] = useState(null); // Objeto reserva en el modal de reprogramación (null = cerrado)
+
+  // --- Funciones auxiliares (definidas dentro: usan estado/setters del cierre) ---
+
+  /**
+   * Formatea un timestamp ISO (`createdAt` / `updatedAt`) a fecha legible.
+   * @param {string} value - Fecha ISO del backend.
+   * @returns {string} Fecha formateada o "Not available" si no hay valor.
+   */
   const formatTimestamp = (value) => {
     if (!value) return "Not available";
     return new Intl.DateTimeFormat("en-In", {
@@ -75,6 +144,13 @@ export default function BookingPage() {
     }).format(new Date(value));
   };
 
+  /**
+   * Pide la lista de reservas al backend aplicando los filtros recibidos.
+   * Solo envía `date` / `status` como query params si tienen valor (si no,
+   * el backend devuelve todo). En caso de error muestra banner con el mensaje
+   * del backend o un fallback genérico.
+   * @param {{ date: string, status: string }} nextFilters - Filtros a aplicar.
+   */
   const fetchBookings = async (nextFilters) => {
     try {
       const params = {};
@@ -88,8 +164,16 @@ export default function BookingPage() {
     }
   };
 
+  /**
+   * Atajo para recargar la lista con los filtros actuales del estado.
+   * Se usa tras cancelar / reprogramar para refrescar las tarjetas.
+   */
   const loadBookings = () => fetchBookings(filters);
 
+  // --- Efecto: recarga filtrada ---
+  // Se ejecuta al montar y cada vez que cambia `filters` (input date o select status).
+  // Envuelve `fetchBookings` en una función async interna porque el callback de
+  // `useEffect` no puede ser async directamente.
   useEffect(() => {
     const loadFilteredBookings = async () => {
       await fetchBookings(filters);
@@ -98,11 +182,28 @@ export default function BookingPage() {
     loadFilteredBookings();
   }, [filters]);
 
+  // --- Manejadores de eventos ---
+
+  /**
+   * Cambia el estado de una reserva (actualmente solo se usa con "cancelled"
+   * desde el modal) y recarga la lista.
+   * @param {{ _id: string }} bookings - Reserva objetivo (el nombre en plural es
+   *   legado: en realidad es un único objeto booking).
+   * @param {string} status - Nuevo estado (ej. "cancelled").
+   */
   const setStatus = async (bookings, status) => {
     await updateBookingStatus(bookings._id, status);
     loadBookings();
   };
 
+  /**
+   * Actualiza el borrador (draft) de reprogramación de una reserva en `reschedules`.
+   * Fusiona: valores actuales del booking + draft previo + nuevo `[key]: value`.
+   * Así los inputs del modal son controlados sin mutar la reserva original hasta confirmar.
+   * @param {{ _id: string, date: string, startTime: string, endtime: string }} booking - Reserva base.
+   * @param {string} key - Campo a editar ("date" | "startTime" | "endTime").
+   * @param {string} value - Nuevo valor del input (date o time).
+   */
   const updateRecheduleDraft = (booking, key, value) => {
     setReschedules((prev) => ({
       ...prev,
@@ -116,6 +217,12 @@ export default function BookingPage() {
     }));
   };
 
+  /**
+   * Confirma la reprogramación: fusiona valores originales + draft, llama a
+   * PATCH `/bookings/:id/reschedule`, muestra banner según si el email al cliente
+   * se envió o se omitió (`data.email.skipped`), limpia el draft y recarga.
+   * @param {{ _id: string, date: string, startTime: string, endTime: string }} booking - Reserva a reprogramar.
+   */
   const submitReschedule = async (booking) => {
     const draft = {
       date: booking.date,
@@ -140,14 +247,24 @@ export default function BookingPage() {
     }
   };
 
+  /**
+   * Elige el estilo del banner de mensajes: verde (success) si contiene
+   * "triggered"/"success", azul informativo en otro caso.
+   * @param {string} msg - Mensaje actual.
+   * @returns {string} Clase CSS de `bookingsPageStyles`.
+   */
   const getBannerVariant = (msg) =>
     msg.toLowerCase().includes("triggered") ||
       msg.toLowerCase().includes("success")
       ? s.messageBannerSuccess
       : s.messageBannerInfo;
 
+  // ============================================================================
+  // 3. RENDERIZADO DE LA INTERFAZ (UI)
+  // ============================================================================
   return (
     <AppLayout>
+      {/* HEADER: título + subtítulo + ilustración P7 + fila de filtros */}
       <section className={s.headerSection}>
         <div className={s.headerLeftArea}>
           <div>
@@ -166,7 +283,9 @@ export default function BookingPage() {
           </div>
         </div>
 
+        {/* Filtros controlados: `filters.date` y `filters.status` -> disparan el useEffect */}
         <div className={s.filterRow}>
+          {/* Filtro por fecha: input date -> `setFilters({ ...prev, date })` */}
           <div className={s.filterDateContainer}>
             <CalendarDays className={s.filterIcon} />
             <input
@@ -179,6 +298,7 @@ export default function BookingPage() {
               placeholder="Select Date"
             />
           </div>
+          {/* Filtro por estado: select construido desde `statuses` ("" = All Statuses) */}
           <div className={s.filterStatusContainer}>
             <select
               value={filters.status}
@@ -198,6 +318,7 @@ export default function BookingPage() {
         </div>
       </section>
 
+      {/* Banner global de feedback: solo visible si hay `message` */}
       {message && (
         <div className={`${s.messageBanner} ${getBannerVariant(message)}`}>
           <Info className="w-4 h-4" />
@@ -205,8 +326,9 @@ export default function BookingPage() {
         </div>
       )}
 
-      {/* Booking cards */}
+      {/* LISTA DE RESERVAS: estado vacío + una tarjeta por booking */}
       <section className={s.bookingListSection}>
+        {/* Empty state: cuando el filtro no devuelve resultados */}
         {bookings.length === 0 && (
           <div className={s.emptyStateContainer}>
             <CalendarDays className={s.emptyStateIcon} />
@@ -217,8 +339,9 @@ export default function BookingPage() {
         {bookings.map((booking) => (
           <article key={booking._id} className={s.cardContainer}>
             <div className={s.cardInnerLayout}>
-              {/* Left: booking info */}
+              {/* Izquierda: información de la reserva */}
               <div className={s.cardLeftBlock}>
+                {/* Badges: estado + pago + contador de reprogramaciones (solo si > 0) */}
                 <div className={s.badgesContainer}>
                   <span
                     className={`${s.statusBadgeBase} ${s.statusBadgeClassMap[booking.status] || s.statusBadgeClassMap.default}`}
@@ -243,6 +366,7 @@ export default function BookingPage() {
                   )}
                 </div>
 
+                {/* Cliente: avatar resuelto vía AVATAR_MAP + nombre + email */}
                 <div className={s.customerInfoRow}>
                   <div className={s.customerAvatarContainer}>
                     <img
@@ -257,6 +381,7 @@ export default function BookingPage() {
                   </div>
                 </div>
 
+                {/* Detalle cita: fecha • hora + servicio (`serviceId.name`) + notas */}
                 <div className={s.bookingDetailsRow}>
                   <div className={s.bookingDetailsIconContainer}>
                     <CalendarDays className={s.bookingDetailsIcon} />
@@ -275,6 +400,7 @@ export default function BookingPage() {
                   </div>
                 </div>
 
+                {/* Timestamps: creación y última actualización formateadas con `formatTimestamp()` */}
                 <div className={s.timestampsContainer}>
                   <span className={s.timestampSpan}>
                     <Clock className={s.timestampIcon} />
@@ -286,12 +412,14 @@ export default function BookingPage() {
                   </span>
                 </div>
 
+                {/* Sync Calendar: `googleEventId` indica si se sincronizó con Google */}
                 <div className={s.calendarSyncRow}>
                   <Calendar className={s.timestampIcon} />
                   Calendar:{" "}
                   {booking.googleEventId ? "Synced to Google" : "Not synced"}
                 </div>
 
+                {/* Enlace "Add to calendar" del cliente: botón si hay URL, texto apagado si no */}
                 {booking.customerCalendarUrl ? (
                   <a
                     href={booking.customerCalendarUrl}
@@ -310,12 +438,13 @@ export default function BookingPage() {
                 )}
               </div>
 
-              {/* Right: action buttons */}
+              {/* Derecha: acciones. Se ocultan si ya está cancelada o falló el pago */}
               <div className={s.cardRightBlock}>
                 <div className={s.actionButtonsContainer}>
                   {booking.status !== "cancelled" &&
                     booking.status !== "payment_failed" && (
                       <>
+                        {/* Abre el modal de reprogramación con esta reserva */}
                         <button
                           type="button"
                           onClick={() => setRescheduleModalBooking(booking)}
@@ -324,6 +453,7 @@ export default function BookingPage() {
                           <CalendarDays className={s.actionIcon} />
                           Reschedule
                         </button>
+                        {/* Abre el modal de cancelación guardando solo el _id */}
                         <button
                           type="button"
                           onClick={() => setCancelModalBookingId(booking._id)}
@@ -341,7 +471,7 @@ export default function BookingPage() {
         ))}
       </section>
 
-      {/* Modals */}
+      {/* MODAL CANCELAR: confirmación irreversible; "Yes, Cancel" -> `setStatus(..., "cancelled")` */}
       {cancelModalBookingId && (
         <div className={s.modalOverlay}>
           <div className={s.modalContent}>
@@ -381,11 +511,13 @@ export default function BookingPage() {
         </div>
       )}
 
+      {/* MODAL REPROGRAMAR: 3 inputs controlados (date/startTime/endTime) atados al draft */}
       {rescheduleModalBooking && (
         <div className={s.modalOverlay}>
           <div className={s.modalContent}>
             <div className={s.modalHeader}>
               <h2 className={s.modalTitle}>Reschedule Booking</h2>
+              {/* Cerrar con X: cierra y descarta el draft de esta reserva */}
               <button
                 onClick={() => {
                   setRescheduleModalBooking(null);
@@ -401,6 +533,7 @@ export default function BookingPage() {
             </div>
             <div className={s.modalBody}>
               <div className={s.rescheduleGrid}>
+                {/* Nueva fecha: `reschedules[id]?.date ?? booking.date` */}
                 <div className={s.rescheduleInputContainer}>
                   <CalendarDays className={s.rescheduleInputIcon} />
                   <input
@@ -410,7 +543,7 @@ export default function BookingPage() {
                       rescheduleModalBooking.date
                     }
                     onChange={(event) =>
-                      updateRescheduleDraft(
+                      updateRecheduleDraft(
                         rescheduleModalBooking,
                         "date",
                         event.target.value,
@@ -419,6 +552,7 @@ export default function BookingPage() {
                     className={s.rescheduleInputField}
                   />
                 </div>
+                {/* Nueva hora inicio: `reschedules[id]?.startTime ?? booking.startTime` */}
                 <div className={s.rescheduleInputContainer}>
                   <Clock className={s.rescheduleInputIcon} />
                   <input
@@ -428,7 +562,7 @@ export default function BookingPage() {
                       rescheduleModalBooking.startTime
                     }
                     onChange={(event) =>
-                      updateRescheduleDraft(
+                      updateRecheduleDraft(
                         rescheduleModalBooking,
                         "startTime",
                         event.target.value,
@@ -437,6 +571,7 @@ export default function BookingPage() {
                     className={s.rescheduleInputField}
                   />
                 </div>
+                {/* Nueva hora fin: `reschedules[id]?.endTime ?? booking.endTime` */}
                 <div className={s.rescheduleInputContainer}>
                   <Clock className={s.rescheduleInputIcon} />
                   <input
@@ -446,7 +581,7 @@ export default function BookingPage() {
                       rescheduleModalBooking.endTime
                     }
                     onChange={(event) =>
-                      updateRescheduleDraft(
+                      updateRecheduleDraft(
                         rescheduleModalBooking,
                         "endTime",
                         event.target.value,
@@ -458,6 +593,7 @@ export default function BookingPage() {
               </div>
             </div>
             <div className={s.modalFooter}>
+              {/* Discard: cierra y descarta el draft sin llamar a la API */}
               <button
                 onClick={() => {
                   setRescheduleModalBooking(null);
@@ -470,6 +606,7 @@ export default function BookingPage() {
               >
                 Discard
               </button>
+              {/* Confirm: llama a `submitReschedule(booking)` y cierra el modal */}
               <button
                 onClick={() => {
                   submitReschedule(rescheduleModalBooking);
