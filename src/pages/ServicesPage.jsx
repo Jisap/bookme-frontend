@@ -63,12 +63,9 @@ import {
   Trash2,
   Eye,
   EyeOff,
-  BadgeCheck,
-  AlertCircle,
   Clock,
   IndianRupee,
   FileText,
-  Sparkles,
   Layers,
 } from "lucide-react";
 import { servicesPageStyles as s } from "../assets/dummyStyles";
@@ -88,6 +85,12 @@ const ICON_MAP = {
   "C7.png": C7,
   "C8.png": C8,
 };
+
+/**
+ * Resuelve la clave de icono a imagen importada con fallback seguro.
+ * Si el backend devuelve un icono desconocido o vacío, usa C1.
+ */
+const resolveIcon = (iconName) => ICON_MAP[iconName] || C1;
 
 /** Valores iniciales/limpios del formulario. Se reutiliza al cancelar y tras guardar. */
 const emptyForm = {
@@ -133,28 +136,21 @@ export default function ServicesPage() {
   };
 
   // --- Carga inicial: una sola vez al montar el componente ---
+  // Reutiliza loadServices para no duplicar la lógica de fetch/error.
   useEffect(() => {
-    const loadinitialServices = async () => {
-      try {
-        const { data } = await listServices();
-        applyServices(data.services);
-      } catch (error) {
-        setMessage(error.response?.data?.message || "Could not load services");
-      }
-    };
-    loadinitialServices();
+    loadServices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /**
    * Manejador genérico de inputs (text, number, select, textarea).
    * Usa `event.target.name` como clave del campo a actualizar.
-   * NOTA: `event.name` no existe en eventos React, se mantiene por
-   * compatibilidad pero el valor efectivo es `event.target.name`.
    */
   const handleChange = (event) => {
+    const { name, value } = event.target;
     setForm((prev) => ({
       ...prev,
-      [event.name || event.target.name]: event.target.value,
+      [name]: value,
     }));
   };
 
@@ -188,9 +184,9 @@ export default function ServicesPage() {
       showToast(
         editingId
           ? "Service updated successfully"
-          : "Service added successfully",
+          : "Service added successfully (created as Hidden — toggle to Active to publish)",
       );
-      loadServices();
+      await loadServices();
     } catch (error) {
       showToast(
         error.response?.data?.message || "Could not save services",
@@ -204,10 +200,19 @@ export default function ServicesPage() {
   /**
    * Alterna visibilidad del servicio (Activo <-> Oculto).
    * Solo envía `{ isActive }` al backend y luego recarga.
+   * Con try/catch para que un fallo (404/red) muestre toast en vez de
+   * quedar como promesa rechazada sin manejar.
    */
   const toggleService = async (service) => {
-    await updateService(service._id, { isActive: !service.isActive });
-    loadServices();
+    try {
+      await updateService(service._id, { isActive: !service.isActive });
+      await loadServices();
+    } catch (error) {
+      showToast(
+        error.response?.data?.message || "Could not update service visibility",
+        "error",
+      );
+    }
   };
 
   /** Entra en modo edición: guarda el id y precarga el form con ese servicio. */
@@ -218,7 +223,8 @@ export default function ServicesPage() {
       duration: service.duration,
       price: service.price,
       description: service.description || "",
-      icon: service.icon || "C1.png",
+      // Valida contra ICON_MAP: si el icono guardado es desconocido, cae a C1.
+      icon: ICON_MAP[service.icon] ? service.icon : "C1.png",
     });
     setMessage("");
   };
@@ -246,7 +252,7 @@ export default function ServicesPage() {
       await deleteService(deleteConfirm._id);
       if (editingId === deleteConfirm._id) cancelEditing();
       showToast("Service deleted successfully");
-      loadServices();
+      await loadServices();
     } catch (error) {
       showToast(
         error.response?.data?.message || "Could not delete service",
@@ -443,10 +449,10 @@ export default function ServicesPage() {
               <article key={service._id} className={s.serviceCard}>
                 <div className={s.serviceCardInner}>
                   <div className={s.serviceInfoRow}>
-                    {/* Icono resuelto vía ICON_MAP con fallback a C1 */}
+                    {/* Icono resuelto vía resolveIcon con fallback seguro a C1 */}
                     <div className={s.serviceIconContainer}>
                       <img
-                        src={ICON_MAP[service.icon || "C1.png"]}
+                        src={resolveIcon(service.icon)}
                         alt={service.name}
                         className={s.serviceIconImg}
                       />
