@@ -6,6 +6,9 @@ import DashboardPage from "./pages/DashboardPage"
 import ProfilePage from "./pages/ProfilePage"
 import BookingsPage from "./pages/BookingPage"
 import PublicBookingPage from "./pages/PublicBookingPage"
+import BookingSuccessPage from "./pages/BookingSuccessPage"
+import BookingCancelledPage from "./pages/BookingCancelledPage"
+import PaymentsPage from "./pages/PaymentsPage"
 
 const ProtectedRoute = ({ children }) => {
   const location = useLocation();
@@ -85,6 +88,18 @@ const App = () => {
       />
 
       <Route path="/book/:slug" element={<PublicBookingPage />} />
+
+      <Route path="/booking/success" element={<BookingSuccessPage />} />
+      <Route path="/booking/cancelled" element={<BookingCancelledPage />} />
+
+      <Route
+        path="/payments"
+        element={
+          <ProtectedRoute>
+            <PaymentsPage />
+          </ProtectedRoute>
+        }
+      />
 
     </Routes>
   )

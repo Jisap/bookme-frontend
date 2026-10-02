@@ -59,3 +59,9 @@ export const getPublicBookingStatus = (params) => client.get(`/public/booking/st
  * @returns {Promise<import('axios').AxiosResponse>} Confirmación de cancelación.
  */
 export const cancelPublicBookingPayments = (bookingId) => client.post(`/public/booking/cancel-payment`, typeof bookingId === "object" ? bookingId : { booking_id: bookingId });
+
+/**
+ * Alias en singular (compatibilidad): la página de cancelación lo importaba
+ * como `cancelPublicBookingPayment`. Misma firma que el plural.
+ */
+export const cancelPublicBookingPayment = cancelPublicBookingPayments;
