@@ -46,4 +46,8 @@ export const getMe = () => client.get("/auth/me");
  * @param {Object} data - Campos a actualizar del perfil/negocio.
  * @returns {Promise<import('axios').AxiosResponse>} Usuario actualizado.
  */
-export const UpdateProfile = (data) => client.put("/auth/profile", data);
+export const updateProfile = (data) => client.put("/auth/profile", data);
+
+// Alias legacy en mayúscula (ProfilePage importaba `updateProfile` en minúsculas
+// y rompía con `UpdateProfile is not a function`). Se mantiene por compatibilidad.
+export const UpdateProfile = updateProfile;
