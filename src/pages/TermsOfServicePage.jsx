@@ -2,18 +2,33 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, FileText } from "lucide-react";
 import logo from "../assets/logo.png";
 
+// -----------------------------------------------------------------------------
+// COMPONENTE: Términos de Servicio (Terms of Service)
+// -----------------------------------------------------------------------------
+// Página estática legal estructurada con HTML semántico (<header>, <main>, <section>) 
+// para garantizar una buena accesibilidad (a11y) y un mejor SEO.
+
 export default function TermsOfServicePage() {
   return (
+    // Contenedor principal: altura mínima de pantalla y fondo neutro suave.
     <div className="min-h-screen bg-[#f8f9fc] text-slate-900">
-      {/* Header */}
+
+      {/* =========================================================================
+          HEADER: Navegación superior fija (sticky) con efecto de desenfoque (backdrop-blur).
+          Se mantiene visible al hacer scroll para facilitar la navegación.
+          ========================================================================= */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
         <div className="mx-auto max-w-4xl flex items-center justify-between px-6 py-4">
+
+          {/* Enlace al inicio con logo. El atributo 'alt' es crucial para accesibilidad. */}
           <Link to="/" className="flex items-center gap-2.5">
-            <img src={logo} alt="BookMe" className="h-8 w-auto" />
+            <img src={logo} alt="BookMe Logo" className="h-8 w-auto" />
             <span className="custom-brand-font text-[22px] text-slate-900 tracking-tight">
               BookMe
             </span>
           </Link>
+
+          {/* Enlace de retorno con transición suave de color al hacer hover */}
           <Link
             to="/"
             className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors"
@@ -24,8 +39,12 @@ export default function TermsOfServicePage() {
         </div>
       </header>
 
-      {/* Content */}
+      {/* =========================================================================
+          MAIN: Contenido principal de los términos de servicio.
+          ========================================================================= */}
       <main className="mx-auto max-w-4xl px-6 py-12 md:py-16">
+
+        {/* Encabezado de la página con icono representativo y fecha de actualización */}
         <div className="flex items-center gap-4 mb-8">
           <div className="w-14 h-14 rounded-2xl bg-[#F4F0FF] flex items-center justify-center">
             <FileText className="w-7 h-7 text-[#7D57F5]" />
@@ -40,7 +59,11 @@ export default function TermsOfServicePage() {
           </div>
         </div>
 
+        {/* Contenedor tipo "tarjeta" para el texto legal. 
+            Usa 'space-y-8' para aplicar margen vertical consistente entre secciones. */}
         <div className="bg-white rounded-[24px] border border-slate-200 p-8 md:p-12 shadow-sm space-y-8">
+
+          {/* 1. Aceptación de los términos */}
           <section>
             <h2 className="text-xl font-extrabold text-slate-900 mb-3">
               1. Acceptance of Terms
@@ -54,6 +77,7 @@ export default function TermsOfServicePage() {
             </p>
           </section>
 
+          {/* 2. Descripción del servicio */}
           <section>
             <h2 className="text-xl font-extrabold text-slate-900 mb-3">
               2. Description of Service
@@ -68,97 +92,64 @@ export default function TermsOfServicePage() {
             </p>
           </section>
 
+          {/* 3. Cuentas de usuario */}
           <section>
             <h2 className="text-xl font-extrabold text-slate-900 mb-3">
               3. User Accounts
             </h2>
             <ul className="list-disc list-inside space-y-2 text-[15px] text-slate-600 leading-relaxed ml-2">
-              <li>
-                You must provide accurate and complete information when creating
-                an account.
-              </li>
-              <li>
-                You are responsible for safeguarding your account credentials
-                and for all activities under your account.
-              </li>
-              <li>
-                You must notify us immediately upon becoming aware of any breach
-                of security or unauthorized use of your account.
-              </li>
-              <li>
-                We reserve the right to suspend or terminate accounts that
-                violate these Terms.
-              </li>
+              <li>You must provide accurate and complete information when creating an account.</li>
+              <li>You are responsible for safeguarding your account credentials and for all activities under your account.</li>
+              <li>You must notify us immediately upon becoming aware of any breach of security or unauthorized use of your account.</li>
+              <li>We reserve the right to suspend or terminate accounts that violate these Terms.</li>
             </ul>
           </section>
 
+          {/* 4. Reservas y Pagos */}
           <section>
             <h2 className="text-xl font-extrabold text-slate-900 mb-3">
               4. Booking & Payments
             </h2>
             <p className="text-[15px] text-slate-600 leading-relaxed mb-3">
-              By using the booking and payment features, you agree to the
-              following:
+              By using the booking and payment features, you agree to the following:
             </p>
             <ul className="list-disc list-inside space-y-2 text-[15px] text-slate-600 leading-relaxed ml-2">
-              <li>
-                All payments are processed securely through Stripe. BookMe does
-                not directly handle or store credit card information.
-              </li>
-              <li>
-                Providers set their own service prices and are responsible for
-                the accuracy of those prices.
-              </li>
-              <li>
-                A platform fee may be deducted from each transaction as outlined
-                in the Provider's dashboard.
-              </li>
-              <li>
-                Refund policies are managed by individual Providers. BookMe
-                facilitates the payment process but is not responsible for
-                disputes between Providers and Clients.
-              </li>
-              <li>
-                Booking cancellations and rescheduling are subject to the
-                Provider's policies.
-              </li>
+              <li>All payments are processed securely through Stripe. BookMe does not directly handle or store credit card information.</li>
+              <li>Providers set their own service prices and are responsible for the accuracy of those prices.</li>
+              <li>A platform fee may be deducted from each transaction as outlined in the Provider's dashboard.</li>
+              <li>Refund policies are managed by individual Providers. BookMe facilitates the payment process but is not responsible for disputes between Providers and Clients.</li>
+              <li>Booking cancellations and rescheduling are subject to the Provider's policies.</li>
             </ul>
           </section>
 
+          {/* 5. Integraciones de terceros */}
           <section>
             <h2 className="text-xl font-extrabold text-slate-900 mb-3">
               5. Third-Party Integrations
             </h2>
             <p className="text-[15px] text-slate-600 leading-relaxed mb-3">
-              The Service integrates with third-party platforms to enhance
-              functionality:
+              The Service integrates with third-party platforms to enhance functionality:
             </p>
             <ul className="list-disc list-inside space-y-2 text-[15px] text-slate-600 leading-relaxed ml-2">
               <li>
-                <span className="font-semibold text-slate-700">
-                  Google Calendar:
-                </span>{" "}
-                Optionally connect your Google Calendar to automatically sync
-                booking events. You may disconnect at any time from your Profile
-                settings.
+                <span className="font-semibold text-slate-700">Google Calendar:</span>{" "}
+                Optionally connect your Google Calendar to automatically sync booking events. You may disconnect at any time from your Profile settings.
               </li>
               <li>
                 <span className="font-semibold text-slate-700">Gmail:</span>{" "}
-                Used to send booking confirmations, cancellation notices, and
-                OTP verification emails to customers.
+                Used to send booking confirmations, cancellation notices, and OTP verification emails to customers.
               </li>
               <li>
                 <span className="font-semibold text-slate-700">Stripe:</span>{" "}
-                Required for processing payments. By using payment features, you
-                also agree to Stripe's Terms of Service.
+                Required for processing payments. By using payment features, you also agree to Stripe's Terms of Service.
               </li>
             </ul>
             <p className="text-[15px] text-slate-600 leading-relaxed mt-3">
-              We are not responsible for the availability, reliability, or
-              policies of any third-party services.
+              We are not responsible for the availability, reliability, or policies of any third-party services.
             </p>
           </section>
 
+          {/* 6. Uso aceptable */}
           <section>
             <h2 className="text-xl font-extrabold text-slate-900 mb-3">
               6. Acceptable Use
@@ -169,24 +160,14 @@ export default function TermsOfServicePage() {
             <ul className="list-disc list-inside space-y-2 text-[15px] text-slate-600 leading-relaxed ml-2">
               <li>Violate any applicable laws, rules, or regulations</li>
               <li>Infringe upon the intellectual property rights of others</li>
-              <li>
-                Upload or transmit viruses, malware, or other harmful code
-              </li>
-              <li>
-                Engage in any conduct that restricts or inhibits any other user
-                from using the Service
-              </li>
-              <li>
-                Use the Service for any fraudulent, deceptive, or misleading
-                purposes
-              </li>
-              <li>
-                Attempt to gain unauthorized access to other users' accounts or
-                data
-              </li>
+              <li>Upload or transmit viruses, malware, or other harmful code</li>
+              <li>Engage in any conduct that restricts or inhibits any other user from using the Service</li>
+              <li>Use the Service for any fraudulent, deceptive, or misleading purposes</li>
+              <li>Attempt to gain unauthorized access to other users' accounts or data</li>
             </ul>
           </section>
 
+          {/* 7. Propiedad intelectual */}
           <section>
             <h2 className="text-xl font-extrabold text-slate-900 mb-3">
               7. Intellectual Property
@@ -201,6 +182,7 @@ export default function TermsOfServicePage() {
             </p>
           </section>
 
+          {/* 8. Limitación de responsabilidad */}
           <section>
             <h2 className="text-xl font-extrabold text-slate-900 mb-3">
               8. Limitation of Liability
@@ -216,6 +198,7 @@ export default function TermsOfServicePage() {
             </p>
           </section>
 
+          {/* 9. Renuncia de garantías */}
           <section>
             <h2 className="text-xl font-extrabold text-slate-900 mb-3">
               9. Disclaimer of Warranties
@@ -230,6 +213,7 @@ export default function TermsOfServicePage() {
             </p>
           </section>
 
+          {/* 10. Terminación */}
           <section>
             <h2 className="text-xl font-extrabold text-slate-900 mb-3">
               10. Termination
@@ -244,6 +228,7 @@ export default function TermsOfServicePage() {
             </p>
           </section>
 
+          {/* 11. Cambios en los términos */}
           <section>
             <h2 className="text-xl font-extrabold text-slate-900 mb-3">
               11. Changes to Terms
@@ -259,6 +244,7 @@ export default function TermsOfServicePage() {
             </p>
           </section>
 
+          {/* 12. Ley aplicable */}
           <section>
             <h2 className="text-xl font-extrabold text-slate-900 mb-3">
               12. Governing Law
@@ -271,12 +257,17 @@ export default function TermsOfServicePage() {
             </p>
           </section>
 
+          {/* 13. Contacto */}
           <section>
             <h2 className="text-xl font-extrabold text-slate-900 mb-3">
               13. Contact Us
             </h2>
             <p className="text-[15px] text-slate-600 leading-relaxed">
               If you have questions about these Terms, please contact us at:{" "}
+              {/* 
+                NOTA: El uso de 'mailto:' abre el cliente de correo predeterminado del usuario.
+                Es una práctica segura y estándar para enlaces de contacto directo.
+              */}
               <a
                 href="mailto:support@hexagondigitalservices.com"
                 className="text-[#7D57F5] font-semibold hover:underline"
@@ -285,6 +276,7 @@ export default function TermsOfServicePage() {
               </a>
             </p>
           </section>
+
         </div>
       </main>
     </div>
