@@ -14,7 +14,7 @@ import AvailabilityPage from "./pages/AvailabilityPage"
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage"
 import TermsOfServicePage from "./pages/TermsOfServicePage"
 
-const ProtectedRoute = ({ children }) => {
+export const ProtectedRoute = ({ children }) => {
   const location = useLocation();
   const hasToken = Boolean(localStorage.getItem("token"));
 
@@ -25,7 +25,7 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-const PublicOnlyRoute = ({ children }) => {
+export const PublicOnlyRoute = ({ children }) => {
   const hasToken = Boolean(localStorage.getItem("token"));
 
   if (hasToken) {
@@ -36,7 +36,7 @@ const PublicOnlyRoute = ({ children }) => {
 }
 
 
-const AdminProtectedRoute = ({ children }) => {
+export const AdminProtectedRoute = ({ children }) => {
   const hasAdminToken = Boolean(localStorage.getItem("adminToken"));
 
   if (!hasAdminToken) {
@@ -45,7 +45,7 @@ const AdminProtectedRoute = ({ children }) => {
   return children;
 }
 
-const AdminPublicOnlyRoute = ({ children }) => {
+export const AdminPublicOnlyRoute = ({ children }) => {
   const hasAdminToken = Boolean(localStorage.getItem("adminToken"));
 
   if (hasAdminToken) {

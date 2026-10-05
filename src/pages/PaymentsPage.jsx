@@ -32,7 +32,7 @@ import { paymentsPageStyles as s } from "../assets/dummyStyles";
  * almacenar la moneda en su unidad más pequeña (ej. paisas o céntimos) 
  * para evitar errores de precisión con números decimales (punto flotante).
  */
-const formatMoney = (amount = 0, currency = "INR") =>
+export const formatMoney = (amount = 0, currency = "INR") =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency }).format(
     amount / 100
   );
@@ -40,7 +40,7 @@ const formatMoney = (amount = 0, currency = "INR") =>
 /**
  * Determina la etiqueta legible para una transacción basándose en su tipo y descripción.
  */
-const transactionLabel = (transaction) => {
+export const transactionLabel = (transaction) => {
   if (transaction.type === "booking_payout") {
     if (
       transaction.description &&
@@ -67,7 +67,7 @@ const transactionLabel = (transaction) => {
  * Calcula el monto de la transacción para su visualización.
  * Las retencidas de retiro (withdrawal_hold) se muestran como negativas.
  */
-const transactionAmount = (transaction) => {
+export const transactionAmount = (transaction) => {
   if (transaction.type === "withdrawal_hold")
     return -Math.abs(transaction.amount || 0);
   return transaction.amount || 0;

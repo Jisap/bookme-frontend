@@ -11,14 +11,19 @@ import { ArrowRight, BadgeCheck, Building2, CalendarDays, Lock, Mail, Shield, Us
 import { authPageStyles as s } from "../assets/dummyStyles";
 
 
-// Valores iniciales del formulario. 
-const initialForm = {
+// Valores iniciales del formulario.
+export const initialForm = {
   name: "",
   email: "",
   password: "",
   businessName: "",
   emailOtp: "",
 };
+
+export const getPostAuthRedirect = (fromLocation) =>
+  fromLocation
+    ? `${fromLocation.pathname}${fromLocation.search || ""}`
+    : "/";
 
 const AuthPage = () => {
   // ───────────────────────────────────────────────────────────
@@ -48,9 +53,7 @@ const AuthPage = () => {
   const fromLocation = location.state?.from;
 
   // Destino tras autenticarse: la página de origen (con su query string) o / por defecto.
-  const redirectTo = fromLocation
-    ? `${fromLocation.pathname}${fromLocation.search || ""}`
-    : "/";
+  const redirectTo = getPostAuthRedirect(fromLocation);
   // ───────────────────────────────────────────────────────────
   // EFECTO: cuenta atrás para poder reenviar el código
   // ───────────────────────────────────────────────────────────

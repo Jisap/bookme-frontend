@@ -42,7 +42,31 @@ const dayIcons = [
 ];
 
 // Estructura por defecto para un nuevo slot de tiempo (9:00 AM a 5:00 PM).
-const defaultSlot = { startTime: "09:00", endTime: "17:00" };
+export const defaultSlot = { startTime: "09:00", endTime: "17:00" };
+
+export const isSlotOverlapping = (slots, newSlot, ignoreIndex = -1) =>
+  slots.some(
+    (slot, i) =>
+      i !== ignoreIndex &&
+      slot.startTime < newSlot.endTime &&
+      newSlot.startTime < slot.endTime
+  );
+
+export const getSlotsForDay = (items, day) => {
+  const dayAvailability = items.find((item) => item.dayOfWeek === day);
+  return dayAvailability?.slots?.length
+    ? dayAvailability.slots
+    : [defaultSlot];
+};
+
+export const formatTime = (time24) => {
+  if (!time24) return "";
+  const [h, m] = time24.split(":");
+  const hour = parseInt(h, 10);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 || 12;
+  return `${String(displayHour).padStart(2, "0")}:${m} ${ampm}`;
+};
 
 // -----------------------------------------------------------------------------
 // COMPONENTE PRINCIPAL
@@ -66,33 +90,14 @@ export default function AvailabilityPage() {
   const showToast = useToast();
 
   // ---------------------------------------------------------------------------
-  // FUNCIONES AUXILIARES (HELPERS)
+  // FUNCIONES AUXILIARES (HELPERS) - wrappers locales que usan los exports testeables
   // ---------------------------------------------------------------------------
 
   /**
    * Busca los slots guardados para un día específico.
    * Si no hay slots guardados, devuelve el slot por defecto.
    */
-  const getSlotsForDays = (items, day) => {
-    const dayAvailability = items.find((item) => item.dayOfWeek === day);
-    return dayAvailability?.slots?.length
-      ? dayAvailability.slots
-      : [defaultSlot];
-  };
-
-  /**
-   * Convierte una hora en formato 24h ("14:30") a formato 12h ("02:30 PM").
-   * NOTA: Aunque está definida, actualmente no se usa en el JSX, pero es útil 
-   * si decides mostrar las horas en un formato más amigable en el futuro.
-   */
-  const formatTime = (time24) => {
-    if (!time24) return "";
-    const [h, m] = time24.split(":");
-    const hour = parseInt(h, 10);
-    const ampm = hour >= 12 ? "PM" : "AM";
-    const displayHour = hour % 12 || 12;
-    return `${String(displayHour).padStart(2, "0")}:${m} ${ampm}`;
-  };
+  const getSlotsForDays = (items, day) => getSlotsForDay(items, day);
 
   // ---------------------------------------------------------------------------
   // ESTADO DERIVADO Y EFECTOS
@@ -155,14 +160,9 @@ export default function AvailabilityPage() {
 
     // 2. VALIDACIÓN: Detectar solapamientos (Overlaps).
     // Comparamos el nuevo slot contra todos los demás.
-    // NOTA: La comparación de strings de hora ("HH:MM") funciona perfectamente aquí 
+    // NOTA: La comparación de strings de hora ("HH:MM") funciona perfectamente aquí
     // porque el formato de 24h es lexicográficamente ordenable.
-    const isOverlapping = slots.some((slot, i) => {
-      if (i === index) return false; // Ignorar el slot que estamos editando.
-      return (
-        slot.startTime < newSlot.endTime && newSlot.startTime < slot.endTime
-      );
-    });
+    const isOverlapping = isSlotOverlapping(slots, newSlot, index);
 
     if (isOverlapping) {
       showToast("Overlap detected: Time falls within an existing slot.", "error");
