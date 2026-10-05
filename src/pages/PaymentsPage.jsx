@@ -16,18 +16,30 @@ import {
   CreditCard,
   Save,
   ExternalLink,
-  Sparkles,
   IndianRupee,
   ArrowUpRight,
   ArrowDownLeft,
 } from "lucide-react";
 import { paymentsPageStyles as s } from "../assets/dummyStyles";
 
+// -----------------------------------------------------------------------------
+// FUNCIONES AUXILIARES (HELPERS)
+// -----------------------------------------------------------------------------
+
+/**
+ * Formatea una cantidad de dinero a formato de moneda local (INR).
+ * NOTA: Se divide por 100 porque es una práctica estándar en el backend 
+ * almacenar la moneda en su unidad más pequeña (ej. paisas o céntimos) 
+ * para evitar errores de precisión con números decimales (punto flotante).
+ */
 const formatMoney = (amount = 0, currency = "INR") =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency }).format(
-    amount / 100,
+    amount / 100
   );
 
+/**
+ * Determina la etiqueta legible para una transacción basándose en su tipo y descripción.
+ */
 const transactionLabel = (transaction) => {
   if (transaction.type === "booking_payout") {
     if (
@@ -41,26 +53,45 @@ const transactionLabel = (transaction) => {
 
   if (transaction.type === "withdrawal_hold") return "Withdrawal requested";
   if (transaction.type === "withdrawal_reversal") return "Withdrawal returned";
+
   if (
     transaction.description &&
-    transaction.description.includes("Booking payout for stripe session")
+    transaction.description.toLowerCase().includes("booking payout for stripe session")
   ) {
     return "Booking payment received";
   }
   return transaction.description || transaction.type;
 };
 
+/**
+ * Calcula el monto de la transacción para su visualización.
+ * Las retencidas de retiro (withdrawal_hold) se muestran como negativas.
+ */
 const transactionAmount = (transaction) => {
   if (transaction.type === "withdrawal_hold")
     return -Math.abs(transaction.amount || 0);
   return transaction.amount || 0;
 };
 
+// -----------------------------------------------------------------------------
+// COMPONENTE PRINCIPAL
+// -----------------------------------------------------------------------------
+
 export default function PaymentsPage() {
+  // --- ESTADO PRINCIPAL ---
+  // Datos completos del overview (wallet, payoutDetails, transactions)
   const [overview, setOverview] = useState(null);
+
+  // Mensajes de éxito o error para mostrar al usuario
   const [message, setMessage] = useState("");
+
+  // Estado de carga global para deshabilitar botones durante peticiones a la API
   const [loading, setLoading] = useState(false);
+
+  // Valor temporal del input de retiro
   const [withdrawAmount, setWithdrawAmount] = useState("");
+
+  // Estado del formulario de detalles de pago
   const [form, setForm] = useState({
     accountHolderName: "",
     bankName: "",
@@ -68,6 +99,10 @@ export default function PaymentsPage() {
     ifsc: "",
     upiId: "",
   });
+
+  // --- ESTADO DERIVADO (useMemo) ---
+  // Se usan useMemo para evitar recálculos innecesarios en cada renderizado 
+  // y para proporcionar valores por defecto seguros si `overview` es null.
 
   const wallet = useMemo(
     () =>
@@ -77,48 +112,73 @@ export default function PaymentsPage() {
         pendingWithdrawals: 0,
         paidWithdrawals: 0,
       },
-    [overview],
+    [overview]
   );
 
   const payoutDetails = useMemo(
     () => overview?.payoutDetails || { isComplete: false, accountLast4: null },
-    [overview],
+    [overview]
   );
 
+  // Calcula el monto disponible en rupias (formato decimal) para el placeholder del input
   const availableRupees = useMemo(() => {
     const rupees = (wallet.available || 0) / 100;
     return rupees > 0 ? rupees.toFixed(2) : "0.00";
   }, [wallet]);
 
+  // ---------------------------------------------------------------------------
+  // EFECTOS SECUNDARIOS (EFFECTS)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Carga los datos iniciales de la página de pagos.
+   * Verifica la autenticación antes de hacer la petición a la API.
+   */
   const loadOverview = async () => {
     if (!localStorage.getItem("token")) {
       setMessage("Please log in to manage payment details");
       return;
     }
 
-    const { data } = await getPaymentOverview();
-    setOverview(data);
-    setForm((prev) => ({
-      ...prev,
-      accountHolderName: data.payoutDetails?.accountHolderName || "",
-      bankName: data.payoutDetails?.bankName || "",
-      ifsc: data.payoutDetails?.ifsc || "",
-      upiId: data.payoutDetails?.upiId || "",
-    }));
+    try {
+      const { data } = await getPaymentOverview();
+      setOverview(data);
+
+      // Pre-rellena el formulario con los datos existentes (si los hay)
+      setForm((prev) => ({
+        ...prev,
+        accountHolderName: data.payoutDetails?.accountHolderName || "",
+        bankName: data.payoutDetails?.bankName || "",
+        ifsc: data.payoutDetails?.ifsc || "",
+        upiId: data.payoutDetails?.upiId || "",
+        // Nota: No pre-rellenamos accountNumber por seguridad (solo se muestra el último dígito)
+      }));
+    } catch (error) {
+      setMessage(
+        error.response?.data?.message || "Could not load payment details"
+      );
+    }
   };
 
+  // Ejecuta la carga de datos al montar el componente
   useEffect(() => {
-    loadOverview().catch((error) => {
-      setMessage(
-        error.response?.data?.message || "Could not load payment details",
-      );
-    });
+    loadOverview();
   }, []);
 
+  // ---------------------------------------------------------------------------
+  // MANEJADORES DE EVENTOS (HANDLERS)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Manejador genérico para actualizar el estado del formulario cuando cambia un input.
+   */
   const handleChange = (event) => {
     setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }));
   };
 
+  /**
+   * Envía los detalles de pago actualizados al servidor.
+   */
   const savePayoutDetails = async (event) => {
     event.preventDefault();
     setLoading(true);
@@ -126,42 +186,65 @@ export default function PaymentsPage() {
 
     try {
       const { data } = await updatePayoutDetails(form);
+
+      // Actualiza el estado local con los nuevos detalles (ej. el nuevo accountLast4)
       setOverview((prev) => ({ ...prev, payoutDetails: data.payoutDetails }));
+
+      // SEGURIDAD/UX: Limpiamos el número de cuenta completo del estado local después de guardar,
+      // ya que el backend solo debería almacenar/devolver los últimos 4 dígitos.
       setForm((prev) => ({ ...prev, accountNumber: "" }));
+
       setMessage(data.message);
     } catch (error) {
       setMessage(
-        error.response?.data?.message || "Could not save payout details",
+        error.response?.data?.message || "Could not save payout details"
       );
     } finally {
       setLoading(false);
     }
   };
 
+  /**
+   * Envía una solicitud de retiro al servidor.
+   */
   const submitWithdrawal = async (event) => {
     event.preventDefault();
     setLoading(true);
     setMessage("");
 
     try {
+      // Convertimos el monto a la unidad más pequeña (paisas) multiplicando por 100
       const amount = Math.round(Number(withdrawAmount) * 100);
       const { data } = await requestWithdrawal(amount);
+
       setMessage(data.message);
-      setWithdrawAmount("");
+      setWithdrawAmount(""); // Limpiar el input después de una solicitud exitosa
+
+      // Recargamos el overview para reflejar el nuevo saldo disponible y la transacción pendiente
       await loadOverview();
     } catch (error) {
       setMessage(
-        error.response?.data?.message || "Could not request withdrawal",
+        error.response?.data?.message || "Could not request withdrawal"
       );
     } finally {
       setLoading(false);
     }
   };
+
+  // ---------------------------------------------------------------------------
+  // RENDERIZADO (JSX)
+  // ---------------------------------------------------------------------------
+
   return (
     <AppLayout>
       <section className={s.mainGrid}>
-        {/* LEFT */}
+
+        {/* =========================================================================
+            COLUMNA IZQUIERDA: Resumen de cartera y solicitud de retiro
+            ========================================================================= */}
         <div className={s.leftColumn}>
+
+          {/* Encabezado e ilustración */}
           <div className={s.leftTopArea}>
             <div>
               <p className={s.pageLabel}>Payments</p>
@@ -185,8 +268,9 @@ export default function PaymentsPage() {
             </div>
           </div>
 
-          {/* Wallet cards */}
+          {/* Tarjetas de resumen de la cartera (Wallet) */}
           <div className={s.walletCardsGrid}>
+            {/* Tarjeta 1: Saldo disponible */}
             <div className={s.walletCard}>
               <div className={s.walletCardHeader}>
                 <div className={s.walletIconBoxAvailable}>
@@ -198,6 +282,8 @@ export default function PaymentsPage() {
                 {formatMoney(wallet.available)}
               </h2>
             </div>
+
+            {/* Tarjeta 2: Total ganado */}
             <div className={s.walletCard}>
               <div className={s.walletCardHeader}>
                 <div className={s.walletIconBoxEarned}>
@@ -207,6 +293,8 @@ export default function PaymentsPage() {
               </div>
               <h2 className={s.walletAmount}>{formatMoney(wallet.earned)}</h2>
             </div>
+
+            {/* Tarjeta 3: Retiros pendientes y pagados */}
             <div className={s.walletCard}>
               <div className={s.walletCardHeader}>
                 <div className={s.walletIconBoxPending}>
@@ -223,7 +311,7 @@ export default function PaymentsPage() {
             </div>
           </div>
 
-          {/* Withdraw section */}
+          {/* Sección de formulario de retiro */}
           <section className={s.withdrawSection}>
             <h2 className={s.withdrawTitle}>
               <ArrowDownToLine className={s.withdrawIcon} />
@@ -244,6 +332,7 @@ export default function PaymentsPage() {
               </div>
               <button
                 type="submit"
+                // Deshabilitado si está cargando o si el usuario no ha configurado sus detalles de pago
                 disabled={loading || !payoutDetails.isComplete}
                 className={s.requestButton}
               >
@@ -251,6 +340,8 @@ export default function PaymentsPage() {
                 Request
               </button>
             </form>
+
+            {/* Advertencia condicional si faltan datos de pago */}
             {!payoutDetails.isComplete && (
               <p className={s.withdrawWarning}>
                 Save payout details before requesting a withdrawal.
@@ -259,9 +350,12 @@ export default function PaymentsPage() {
           </section>
         </div>
 
-        {/* RIGHT */}
+        {/* =========================================================================
+            COLUMNA DERECHA: Formulario de detalles de pago e historial de actividad
+            ========================================================================= */}
         <div className={s.rightColumn}>
-          {/* Payout details form */}
+
+          {/* Formulario de detalles de pago */}
           <section className={s.payoutDetailsSection}>
             <h2 className={s.payoutTitle}>
               <Building2 className={s.payoutTitleIcon} />
@@ -279,6 +373,7 @@ export default function PaymentsPage() {
                   value={form.accountHolderName}
                   onChange={handleChange}
                   className={s.textInput}
+                  required
                 />
               </label>
               <label className={s.inputLabel}>
@@ -288,6 +383,7 @@ export default function PaymentsPage() {
                   value={form.bankName}
                   onChange={handleChange}
                   className={s.textInput}
+                  required
                 />
               </label>
               <label className={s.inputLabel}>
@@ -298,12 +394,14 @@ export default function PaymentsPage() {
                   onChange={handleChange}
                   placeholder={
                     payoutDetails.accountLast4
-                      ? `Saved ending ${payoutDetails.accountLast4}`
-                      : ""
+                      ? `Saved ending in ${payoutDetails.accountLast4}`
+                      : "Enter full account number"
                   }
                   className={s.textInput}
+                  required
                 />
               </label>
+
               <div className={s.payoutGridTwoCol}>
                 <label className={s.inputLabel}>
                   IFSC
@@ -312,6 +410,7 @@ export default function PaymentsPage() {
                     value={form.ifsc}
                     onChange={handleChange}
                     className={s.textInput}
+                    required
                   />
                 </label>
                 <label className={s.inputLabel}>
@@ -324,15 +423,18 @@ export default function PaymentsPage() {
                   />
                 </label>
               </div>
+
               <button type="submit" disabled={loading} className={s.saveButton}>
                 <Save className={s.saveIcon} />
                 {loading ? "Saving..." : "Save payout details"}
               </button>
+
+              {/* Caja de mensajes para feedback de éxito/error */}
               {message && <p className={s.messageBox}>{message}</p>}
             </form>
           </section>
 
-          {/* Recent activity */}
+          {/* Historial de actividad reciente */}
           <section className={s.recentActivitySection}>
             <div className={s.recentActivityHeader}>
               <h2 className={s.recentActivityTitle}>
@@ -344,13 +446,16 @@ export default function PaymentsPage() {
                 <ExternalLink className={s.bookingsLinkIcon} />
               </Link>
             </div>
+
             <div className={s.transactionList}>
               {(overview?.transactions || []).map((transaction) => {
                 const amount = transactionAmount(transaction);
                 const isNegative = amount < 0;
+
                 return (
                   <div key={transaction._id} className={s.transactionItem}>
                     <div className={s.transactionLeft}>
+                      {/* Icono dinámico según si el saldo suma o resta */}
                       <div
                         className={
                           isNegative
@@ -368,6 +473,8 @@ export default function PaymentsPage() {
                         {transactionLabel(transaction)}
                       </span>
                     </div>
+
+                    {/* Monto formateado con color dinámico (rojo para negativo, verde/gris para positivo) */}
                     <strong
                       className={
                         isNegative
@@ -380,6 +487,8 @@ export default function PaymentsPage() {
                   </div>
                 );
               })}
+
+              {/* Estado vacío si no hay transacciones */}
               {overview && overview.transactions?.length === 0 && (
                 <p className={s.emptyText}>No wallet activity yet.</p>
               )}
