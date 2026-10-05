@@ -10,6 +10,9 @@ import BookingSuccessPage from "./pages/BookingSuccessPage"
 import BookingCancelledPage from "./pages/BookingCancelledPage"
 import PaymentsPage from "./pages/PaymentsPage"
 import ServicesPage from "./pages/ServicesPage"
+import AvailabilityPage from "./pages/AvailabilityPage"
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage"
+import TermsOfServicePage from "./pages/TermsOfServicePage"
 
 const ProtectedRoute = ({ children }) => {
   const location = useLocation();
@@ -37,8 +40,18 @@ const AdminProtectedRoute = ({ children }) => {
   const hasAdminToken = Boolean(localStorage.getItem("adminToken"));
 
   if (!hasAdminToken) {
-    return <Navigate to={"admin/login"} replace />
+    return <Navigate to="/admin/login" replace />
   }
+  return children;
+}
+
+const AdminPublicOnlyRoute = ({ children }) => {
+  const hasAdminToken = Boolean(localStorage.getItem("adminToken"));
+
+  if (hasAdminToken) {
+    return <Navigate to="/admin/dashboard" replace />
+  }
+
   return children;
 }
 
@@ -53,7 +66,13 @@ const App = () => {
 
       />
 
-      <Route path="/admin/login" element={<AdminLoginPage />} />
+      <Route path="/admin/login" element={
+        <AdminPublicOnlyRoute>
+          <AdminLoginPage />
+        </AdminPublicOnlyRoute>
+      } />
+
+      <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
 
       <Route path="/admin/dashboard" element={
         <AdminProtectedRoute>
@@ -110,6 +129,20 @@ const App = () => {
           </ProtectedRoute>
         }
       />
+
+      <Route
+        path="/availability"
+        element={
+          <ProtectedRoute>
+            <AvailabilityPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route path="/privacy" element={<PrivacyPolicyPage />} />
+      <Route path="/terms" element={<TermsOfServicePage />} />
+
+      <Route path="*" element={<Navigate to="/" replace />} />
 
     </Routes>
   )

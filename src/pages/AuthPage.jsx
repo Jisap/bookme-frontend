@@ -47,10 +47,10 @@ const AuthPage = () => {
   // Si entró directamente a /login, no habrá state y será undefined.
   const fromLocation = location.state?.from;
 
-  // Destino tras autenticarse: la página de origen (con su query string) o /profile por defecto.
+  // Destino tras autenticarse: la página de origen (con su query string) o / por defecto.
   const redirectTo = fromLocation
     ? `${fromLocation.pathname}${fromLocation.search || ""}`
-    : "/profile";
+    : "/";
   // ───────────────────────────────────────────────────────────
   // EFECTO: cuenta atrás para poder reenviar el código
   // ───────────────────────────────────────────────────────────
