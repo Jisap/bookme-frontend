@@ -2,18 +2,33 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, Shield } from "lucide-react";
 import logo from "../assets/logo.png";
 
+// -----------------------------------------------------------------------------
+// COMPONENTE: Política de Privacidad
+// -----------------------------------------------------------------------------
+// Esta es una página principalmente estática, pero está estructurada usando 
+// HTML semántico (<header>, <main>, <section>) para mejorar la accesibilidad 
+// (a11y) y el SEO.
+
 export default function PrivacyPolicyPage() {
   return (
+    // Contenedor principal con altura mínima de pantalla y fondo suave.
     <div className="min-h-screen bg-[#f8f9fc] text-slate-900">
-      {/* Header */}
+
+      {/* =========================================================================
+          HEADER: Navegación superior fija (sticky) con efecto de desenfoque.
+          ========================================================================= */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
         <div className="mx-auto max-w-4xl flex items-center justify-between px-6 py-4">
+
+          {/* Enlace al inicio con el logo y la marca */}
           <Link to="/" className="flex items-center gap-2.5">
-            <img src={logo} alt="BookMe" className="h-8 w-auto" />
+            <img src={logo} alt="BookMe Logo" className="h-8 w-auto" />
             <span className="custom-brand-font text-[22px] text-slate-900 tracking-tight">
               BookMe
             </span>
           </Link>
+
+          {/* Enlace de retorno con transición suave de color al hacer hover */}
           <Link
             to="/"
             className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors"
@@ -24,8 +39,12 @@ export default function PrivacyPolicyPage() {
         </div>
       </header>
 
-      {/* Content */}
+      {/* =========================================================================
+          MAIN: Contenido principal de la política de privacidad.
+          ========================================================================= */}
       <main className="mx-auto max-w-4xl px-6 py-12 md:py-16">
+
+        {/* Encabezado de la página con icono y fecha de última actualización */}
         <div className="flex items-center gap-4 mb-8">
           <div className="w-14 h-14 rounded-2xl bg-[#F4F0FF] flex items-center justify-center">
             <Shield className="w-7 h-7 text-[#7D57F5]" />
@@ -40,7 +59,10 @@ export default function PrivacyPolicyPage() {
           </div>
         </div>
 
+        {/* Contenedor tipo "tarjeta" para el texto legal, con buen espaciado interno */}
         <div className="bg-white rounded-[24px] border border-slate-200 p-8 md:p-12 shadow-sm space-y-8">
+
+          {/* SECCIÓN 1: Introducción */}
           <section>
             <h2 className="text-xl font-extrabold text-slate-900 mb-3">
               1. Introduction
@@ -54,6 +76,7 @@ export default function PrivacyPolicyPage() {
             </p>
           </section>
 
+          {/* SECCIÓN 2: Información recopilada */}
           <section>
             <h2 className="text-xl font-extrabold text-slate-900 mb-3">
               2. Information We Collect
@@ -63,71 +86,45 @@ export default function PrivacyPolicyPage() {
             </p>
             <ul className="list-disc list-inside space-y-2 text-[15px] text-slate-600 leading-relaxed ml-2">
               <li>
-                <span className="font-semibold text-slate-700">
-                  Account Information:
-                </span>{" "}
-                Name, email address, business name, and profile details when you
-                create an account.
+                <span className="font-semibold text-slate-700">Account Information:</span>{" "}
+                Name, email address, business name, and profile details when you create an account.
               </li>
               <li>
-                <span className="font-semibold text-slate-700">
-                  Booking Information:
-                </span>{" "}
-                Customer names, email addresses, appointment dates and times,
-                and service selections.
+                <span className="font-semibold text-slate-700">Booking Information:</span>{" "}
+                Customer names, email addresses, appointment dates and times, and service selections.
               </li>
               <li>
-                <span className="font-semibold text-slate-700">
-                  Payment Information:
-                </span>{" "}
-                Payment details are processed securely by our third-party
-                payment processor (Stripe). We do not store your full payment
-                card information on our servers.
+                <span className="font-semibold text-slate-700">Payment Information:</span>{" "}
+                Payment details are processed securely by our third-party payment processor (Stripe). We do not store your full payment card information on our servers.
               </li>
               <li>
-                <span className="font-semibold text-slate-700">
-                  Calendar Data:
-                </span>{" "}
-                When you connect Google Calendar, we access calendar event data
-                to sync your bookings and avoid scheduling conflicts.
+                <span className="font-semibold text-slate-700">Calendar Data:</span>{" "}
+                When you connect Google Calendar, we access calendar event data to sync your bookings and avoid scheduling conflicts.
               </li>
               <li>
-                <span className="font-semibold text-slate-700">
-                  Communication Data:
-                </span>{" "}
-                Email addresses used for OTP verification and booking
-                notifications.
+                <span className="font-semibold text-slate-700">Communication Data:</span>{" "}
+                Email addresses used for OTP verification and booking notifications.
               </li>
             </ul>
           </section>
 
+          {/* SECCIÓN 3: Uso de la información */}
           <section>
             <h2 className="text-xl font-extrabold text-slate-900 mb-3">
               3. How We Use Your Information
             </h2>
             <ul className="list-disc list-inside space-y-2 text-[15px] text-slate-600 leading-relaxed ml-2">
               <li>To provide, operate, and maintain the Service</li>
-              <li>
-                To process bookings, payments, and send appointment
-                confirmations
-              </li>
-              <li>
-                To send OTP verification codes for secure booking authentication
-              </li>
-              <li>
-                To sync booking events with your connected Google Calendar
-              </li>
-              <li>
-                To send booking-related email notifications to customers and
-                service providers
-              </li>
+              <li>To process bookings, payments, and send appointment confirmations</li>
+              <li>To send OTP verification codes for secure booking authentication</li>
+              <li>To sync booking events with your connected Google Calendar</li>
+              <li>To send booking-related email notifications to customers and service providers</li>
               <li>To improve and personalize the Service experience</li>
-              <li>
-                To detect and prevent fraudulent or unauthorized activities
-              </li>
+              <li>To detect and prevent fraudulent or unauthorized activities</li>
             </ul>
           </section>
 
+          {/* SECCIÓN 4: Servicios de terceros */}
           <section>
             <h2 className="text-xl font-extrabold text-slate-900 mb-3">
               4. Third-Party Services
@@ -138,24 +135,20 @@ export default function PrivacyPolicyPage() {
             <ul className="list-disc list-inside space-y-2 text-[15px] text-slate-600 leading-relaxed ml-2">
               <li>
                 <span className="font-semibold text-slate-700">Stripe:</span>{" "}
-                For processing payments securely. Stripe's privacy policy
-                governs payment data handling.
+                For processing payments securely. Stripe's privacy policy governs payment data handling.
               </li>
               <li>
-                <span className="font-semibold text-slate-700">
-                  Google Calendar API:
-                </span>{" "}
-                For syncing booking events. We request only the minimum
-                permissions needed (calendar event creation and management).
+                <span className="font-semibold text-slate-700">Google Calendar API:</span>{" "}
+                For syncing booking events. We request only the minimum permissions needed (calendar event creation and management).
               </li>
               <li>
                 <span className="font-semibold text-slate-700">Gmail API:</span>{" "}
-                For sending booking notifications and OTP verification emails
-                through your connected Gmail account.
+                For sending booking notifications and OTP verification emails through your connected Gmail account.
               </li>
             </ul>
           </section>
 
+          {/* SECCIÓN 5: Divulgación de uso limitado de Google API */}
           <section>
             <h2 className="text-xl font-extrabold text-slate-900 mb-3">
               5. Google API Services — Limited Use Disclosure
@@ -163,6 +156,12 @@ export default function PrivacyPolicyPage() {
             <p className="text-[15px] text-slate-600 leading-relaxed">
               BookMe's use and transfer of information received from Google APIs
               adheres to the{" "}
+              {/* 
+                NOTA DE SEGURIDAD: Siempre que uses target="_blank" para enlaces externos, 
+                debes incluir rel="noreferrer" (o al menos rel="noopener") para evitar 
+                que la página de destino acceda al objeto window.opener de tu sitio, 
+                previniendo ataques de phishing o robo de rendimiento.
+              */}
               <a
                 href="https://developers.google.com/terms/api-services-user-data-policy"
                 target="_blank"
@@ -177,6 +176,7 @@ export default function PrivacyPolicyPage() {
             </p>
           </section>
 
+          {/* SECCIÓN 6: Seguridad de datos */}
           <section>
             <h2 className="text-xl font-extrabold text-slate-900 mb-3">
               6. Data Security
@@ -191,6 +191,7 @@ export default function PrivacyPolicyPage() {
             </p>
           </section>
 
+          {/* SECCIÓN 7: Retención de datos */}
           <section>
             <h2 className="text-xl font-extrabold text-slate-900 mb-3">
               7. Data Retention
@@ -204,6 +205,7 @@ export default function PrivacyPolicyPage() {
             </p>
           </section>
 
+          {/* SECCIÓN 8: Derechos del usuario */}
           <section>
             <h2 className="text-xl font-extrabold text-slate-900 mb-3">
               8. Your Rights
@@ -216,13 +218,11 @@ export default function PrivacyPolicyPage() {
               <li>Request correction of inaccurate personal data</li>
               <li>Request deletion of your personal data</li>
               <li>Withdraw consent for data processing at any time</li>
-              <li>
-                Disconnect third-party integrations (Google Calendar, Stripe)
-                from your profile settings
-              </li>
+              <li>Disconnect third-party integrations (Google Calendar, Stripe) from your profile settings</li>
             </ul>
           </section>
 
+          {/* SECCIÓN 9: Cookies */}
           <section>
             <h2 className="text-xl font-extrabold text-slate-900 mb-3">
               9. Cookies
@@ -234,6 +234,7 @@ export default function PrivacyPolicyPage() {
             </p>
           </section>
 
+          {/* SECCIÓN 10: Cambios en la política */}
           <section>
             <h2 className="text-xl font-extrabold text-slate-900 mb-3">
               10. Changes to This Policy
@@ -246,6 +247,7 @@ export default function PrivacyPolicyPage() {
             </p>
           </section>
 
+          {/* SECCIÓN 11: Contacto */}
           <section>
             <h2 className="text-xl font-extrabold text-slate-900 mb-3">
               11. Contact Us
@@ -261,6 +263,7 @@ export default function PrivacyPolicyPage() {
               </a>
             </p>
           </section>
+
         </div>
       </main>
     </div>
