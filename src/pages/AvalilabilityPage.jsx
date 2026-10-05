@@ -15,6 +15,11 @@ import {
 } from "lucide-react";
 import { availabilityPageStyles as s } from "../assets/dummyStyles";
 
+// -----------------------------------------------------------------------------
+// CONSTANTES Y DATOS ESTÁTICOS
+// -----------------------------------------------------------------------------
+
+// Lista de días de la semana. El índice coincide con el valor de `dayOfWeek` (0 = Domingo).
 const days = [
   "Sunday",
   "Monday",
@@ -25,6 +30,7 @@ const days = [
   "Saturday",
 ];
 
+// Iconos asociados a cada día (usando el icono de sol para el fin de semana).
 const dayIcons = [
   Sun,
   CalendarDays,
@@ -35,16 +41,38 @@ const dayIcons = [
   Sun,
 ];
 
+// Estructura por defecto para un nuevo slot de tiempo (9:00 AM a 5:00 PM).
 const defaultSlot = { startTime: "09:00", endTime: "17:00" };
 
+// -----------------------------------------------------------------------------
+// COMPONENTE PRINCIPAL
+// -----------------------------------------------------------------------------
+
 export default function AvailabilityPage() {
+  // --- ESTADO PRINCIPAL ---
+  // Array completo de disponibilidad recibida del backend (todos los días).
   const [availability, setAvailability] = useState([]);
+
+  // Índice del día seleccionado actualmente (0-6). Por defecto, Lunes (1).
   const [selectedDay, setSelectedDay] = useState(1);
+
+  // Array de slots de tiempo para el día seleccionado actualmente.
+  // Este es el estado "local" que el usuario edita antes de guardar.
   const [slots, setSlots] = useState([defaultSlot]);
+
+  // Estados para feedback y carga.
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const showToast = useToast();
 
+  // ---------------------------------------------------------------------------
+  // FUNCIONES AUXILIARES (HELPERS)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Busca los slots guardados para un día específico.
+   * Si no hay slots guardados, devuelve el slot por defecto.
+   */
   const getSlotsForDays = (items, day) => {
     const dayAvailability = items.find((item) => item.dayOfWeek === day);
     return dayAvailability?.slots?.length
@@ -52,30 +80,67 @@ export default function AvailabilityPage() {
       : [defaultSlot];
   };
 
+  /**
+   * Convierte una hora en formato 24h ("14:30") a formato 12h ("02:30 PM").
+   * NOTA: Aunque está definida, actualmente no se usa en el JSX, pero es útil 
+   * si decides mostrar las horas en un formato más amigable en el futuro.
+   */
+  const formatTime = (time24) => {
+    if (!time24) return "";
+    const [h, m] = time24.split(":");
+    const hour = parseInt(h, 10);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    const displayHour = hour % 12 || 12;
+    return `${String(displayHour).padStart(2, "0")}:${m} ${ampm}`;
+  };
+
+  // ---------------------------------------------------------------------------
+  // ESTADO DERIVADO Y EFECTOS
+  // ---------------------------------------------------------------------------
+
+  // Calcula el resumen del día seleccionado para mostrar en la UI (ej. "3 saved time windows").
   const currentDaySummary = useMemo(
     () => availability.find((item) => item.dayOfWeek === selectedDay),
-    [availability, selectedDay],
+    [availability, selectedDay]
   );
 
+  /**
+   * Carga la disponibilidad inicial o actualiza los slots cuando el usuario cambia de día.
+   * Al cambiar `selectedDay`, sincronizamos el estado local `slots` con los datos del backend.
+   */
   useEffect(() => {
     const loadInitialAvailability = async () => {
       try {
         const { data } = await listAvailability();
         const items = data.availability || [];
         setAvailability(items);
+
+        // Sincroniza los slots locales con el día recién seleccionado.
         setSlots(getSlotsForDays(items, selectedDay));
       } catch (error) {
         setMessage(
-          error.response?.data?.message || "Could not load availability",
+          error.response?.data?.message || "Could not load availability"
         );
       }
     };
 
     loadInitialAvailability();
-  }, [selectedDay]);
+  }, [selectedDay]); // Se re-ejecuta cada vez que cambia el día seleccionado.
+
+  // ---------------------------------------------------------------------------
+  // MANEJADORES DE EVENTOS (HANDLERS)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Actualiza un slot específico y valida que no haya errores de tiempo.
+   * - Ajusta automáticamente la hora de fin si es menor o igual a la de inicio.
+   * - Detecta y previene solapamientos (overlaps) con otros slots del mismo día.
+   */
   const updateSlot = (index, field, value) => {
     let newSlot = { ...slots[index], [field]: value };
 
+    // 1. VALIDACIÓN: Asegurar que la hora de inicio sea menor que la de fin.
+    // Si el usuario pone una hora de inicio mayor, ajustamos la hora de fin automáticamente.
     if (newSlot.startTime >= newSlot.endTime) {
       if (field === "startTime") {
         const [h, m] = newSlot.startTime.split(":");
@@ -88,44 +153,50 @@ export default function AvailabilityPage() {
       }
     }
 
+    // 2. VALIDACIÓN: Detectar solapamientos (Overlaps).
+    // Comparamos el nuevo slot contra todos los demás.
+    // NOTA: La comparación de strings de hora ("HH:MM") funciona perfectamente aquí 
+    // porque el formato de 24h es lexicográficamente ordenable.
     const isOverlapping = slots.some((slot, i) => {
-      if (i === index) return false;
+      if (i === index) return false; // Ignorar el slot que estamos editando.
       return (
         slot.startTime < newSlot.endTime && newSlot.startTime < slot.endTime
       );
     });
 
     if (isOverlapping) {
-      showToast(
-        "Overlap detected: Time falls within an existing slot.",
-        "error",
-      );
-      return;
+      showToast("Overlap detected: Time falls within an existing slot.", "error");
+      return; // Cancelamos la actualización si hay solapamiento.
     }
 
+    // 3. ACTUALIZACIÓN: Si todo es correcto, actualizamos el estado.
     setSlots((prev) =>
-      prev.map((slot, slotIndex) => (slotIndex === index ? newSlot : slot)),
+      prev.map((slot, slotIndex) => (slotIndex === index ? newSlot : slot))
     );
   };
 
+  /**
+   * Añade un nuevo slot de tiempo basándose en la hora de fin del último slot existente.
+   */
   const addSlot = () => {
     if (slots.length === 0) {
       setSlots([defaultSlot]);
       return;
     }
 
-    const sorted = [...slots].sort((a, b) =>
-      a.endTime.localeCompare(b.endTime),
-    );
+    // Ordenamos los slots por hora de fin para encontrar el último del día.
+    const sorted = [...slots].sort((a, b) => a.endTime.localeCompare(b.endTime));
     const latest = sorted[sorted.length - 1];
 
     const [h, m] = latest.endTime.split(":");
     let startH = parseInt(h, 10);
 
+    // Validación: No permitir añadir slots si ya hemos llegado al final del día (23:00).
     if (startH >= 23) {
       showToast("Cannot add slot: No more hours available.", "error");
       return;
     }
+
     let endH = startH + 1;
 
     const newStart = `${String(startH).padStart(2, "0")}:${m}`;
@@ -134,10 +205,16 @@ export default function AvailabilityPage() {
     setSlots((prev) => [...prev, { startTime: newStart, endTime: newEnd }]);
   };
 
+  /**
+   * Elimina un slot por su índice.
+   */
   const removeSlot = (index) => {
     setSlots((prev) => prev.filter((_, slotIndex) => slotIndex !== index));
   };
 
+  /**
+   * Guarda los slots del día seleccionado en el backend.
+   */
   const handleSave = async () => {
     setLoading(true);
     setMessage("");
@@ -147,73 +224,80 @@ export default function AvailabilityPage() {
         dayOfWeek: selectedDay,
         slots,
       });
+
+      // Actualizamos el estado global `availability` reemplazando el día guardado
+      // y ordenando el array por día de la semana para mantener la consistencia.
       setAvailability((prev) => {
-        const withoutDay = prev.filter(
-          (item) => item.dayOfWeek !== selectedDay,
-        );
+        const withoutDay = prev.filter((item) => item.dayOfWeek !== selectedDay);
         return [...withoutDay, data.availability].sort(
-          (a, b) => a.dayOfWeek - b.dayOfWeek,
+          (a, b) => a.dayOfWeek - b.dayOfWeek
         );
       });
-      showToast("Availability saved");
+
+      showToast("Availability saved", "success");
     } catch (error) {
       showToast(
         error.response?.data?.message || "Could not save availability",
-        "error",
+        "error"
       );
     } finally {
       setLoading(false);
     }
   };
 
-  const formatTime = (time24) => {
-    if (!time24) return "";
-    const [h, m] = time24.split(":");
-    const hour = parseInt(h, 10);
-    const ampm = hour >= 12 ? "PM" : "AM";
-    const displayHour = hour % 12 || 12;
-    return `${String(displayHour).padStart(2, "0")}:${m} ${ampm}`;
-  };
+  // ---------------------------------------------------------------------------
+  // RENDERIZADO (JSX)
+  // ---------------------------------------------------------------------------
+
   return (
     <AppLayout>
       <div className={s.mainGrid}>
-        {/* Left day selector */}
+
+        {/* =========================================================================
+            COLUMNA IZQUIERDA: Selector de días de la semana
+            ========================================================================= */}
         <section>
           <div className={s.leftTopArea}>
             <div>
               <p className={s.availabilityLabel}>Availability</p>
+
               <h1 className={s.mainHeading}>
                 Set the hours customers can{" "}
                 <span className={s.gradientText}>choose.</span>
               </h1>
+
               <p className={s.subText}>
                 Keep it simple: select a weekday, add one or more time windows,
                 then save.
               </p>
             </div>
+
             <div className={s.illustrationContainer}>
-              <img src={p5Image} className={s.illustrationImg} />
+              <img src={p5Image} className={s.illustrationImg} alt="Availability illustration" />
             </div>
           </div>
 
+          {/* Lista de botones para seleccionar el día */}
           <div className={s.dayListContainer}>
             {days.map((day, index) => {
               const Icon = dayIcons[index];
               const isSelected = selectedDay === index;
+
+              // Verifica si el día ya tiene slots guardados para mostrar el indicador visual.
               const hasSaved = availability.some(
-                (item) => item.dayOfWeek === index && item.slots?.length > 0,
+                (item) => item.dayOfWeek === index && item.slots?.length > 0
               );
+
               return (
                 <button
                   key={day}
                   type="button"
                   onClick={() => {
                     setSelectedDay(index);
+                    // Al cambiar de día, cargamos inmediatamente sus slots en el estado local.
                     setSlots(getSlotsForDays(availability, index));
                   }}
-                  className={
-                    isSelected ? s.dayButtonActive : s.dayButtonInactive
-                  }
+                  className={isSelected ? s.dayButtonActive : s.dayButtonInactive}
                 >
                   <div className="flex items-center gap-3">
                     <div
@@ -225,15 +309,15 @@ export default function AvailabilityPage() {
                     >
                       <Icon className={s.dayIcon} />
                     </div>
+
                     <span
-                      className={
-                        isSelected ? s.dayLabelActive : s.dayLabelInactive
-                      }
+                      className={isSelected ? s.dayLabelActive : s.dayLabelInactive}
                     >
                       {day}
                     </span>
                   </div>
 
+                  {/* Indicador de "día configurado" (Check) */}
                   {isSelected ? (
                     <div className={s.dayCheckActiveContainer}>
                       <BadgeCheck className={s.dayCheckActiveIcon} />
@@ -246,6 +330,7 @@ export default function AvailabilityPage() {
             })}
           </div>
 
+          {/* Caja informativa */}
           <div className={s.infoBox}>
             <Clock className={s.infoBoxIcon} />
             <p className={s.infoBoxText}>
@@ -256,37 +341,39 @@ export default function AvailabilityPage() {
           </div>
         </section>
 
-        {/* Right time slots */}
+        {/* =========================================================================
+            COLUMNA DERECHA: Edición de slots de tiempo para el día seleccionado
+            ========================================================================= */}
         <section className={s.rightSection}>
+
+          {/* Cabecera de la sección de slots */}
           <div className={s.rightTopBar}>
             <div className={s.rightTopLeft}>
               <div className={s.rightTopIconContainer}>
                 <CalendarDays className={s.rightTopCalendarIcon} />
               </div>
+
               <div>
                 <h2 className={s.rightDayName}>{days[selectedDay]}</h2>
                 <p className={s.rightSummaryText}>
                   {currentDaySummary?.slots?.length || 0} saved time{" "}
-                  {currentDaySummary?.slots?.length === 1
-                    ? "window"
-                    : "windows"}
+                  {currentDaySummary?.slots?.length === 1 ? "window" : "windows"}
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={addSlot}
-              className={s.addWindowButton}
-            >
+
+            <button type="button" onClick={addSlot} className={s.addWindowButton}>
               <Plus className={s.addWindowIcon} />
               Add window
             </button>
           </div>
 
+          {/* Lista de tarjetas de slots editables */}
           <div className={s.slotsContainer}>
             {slots.map((slot, index) => (
               <div key={`${index}-${slot.startTime}`} className={s.slotCard}>
                 <div className={s.slotGrid}>
+                  {/* Input de Hora de Inicio */}
                   <label className={s.slotLabel}>
                     Start
                     <div className={s.timeInputContainer}>
@@ -302,6 +389,7 @@ export default function AvailabilityPage() {
                     </div>
                   </label>
 
+                  {/* Input de Hora de Fin */}
                   <label className={s.slotLabel}>
                     End
                     <div className={s.timeInputContainer}>
@@ -317,6 +405,7 @@ export default function AvailabilityPage() {
                     </div>
                   </label>
 
+                  {/* Botón para eliminar el slot */}
                   <button
                     type="button"
                     onClick={() => removeSlot(index)}
@@ -330,11 +419,13 @@ export default function AvailabilityPage() {
             ))}
           </div>
 
+          {/* Botón secundario para añadir más slots (estilo dashed) */}
           <button type="button" onClick={addSlot} className={s.dashedAddButton}>
             <Plus className={s.dashedAddIcon} />
             Add another time window
           </button>
 
+          {/* Botón principal de guardado */}
           <button
             type="button"
             disabled={loading}
@@ -345,6 +436,7 @@ export default function AvailabilityPage() {
             {loading ? "Saving..." : "Save availability"}
           </button>
 
+          {/* Mensaje de error/éxito (fallback si el toast no es suficiente) */}
           {message && <p className={s.message}>{message}</p>}
         </section>
       </div>
